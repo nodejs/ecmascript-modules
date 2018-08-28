@@ -123,6 +123,7 @@
       'lib/internal/inspector_async_hook.js',
       'lib/internal/linkedlist.js',
       'lib/internal/modules/cjs/helpers.js',
+      'lib/internal/modules/cjs/isstrict.js',
       'lib/internal/modules/cjs/loader.js',
       'lib/internal/modules/esm/loader.js',
       'lib/internal/modules/esm/create_dynamic_module.js',
