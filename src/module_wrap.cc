@@ -673,19 +673,20 @@ Maybe<URL> Resolve(Environment* env,
   }
   if (ShouldBeTreatedAsRelativeOrAbsolutePath(specifier)) {
     URL resolved(specifier, base);
-
-    const PackageConfig& parentPjson = FindPackageConfig(env, base);
-    const PackageConfig& pjson = FindPackageConfig(env, resolved);
     
     // if resolving a relative path in the same package as the parent,
     // don't support automatic extensions or directory resolution
-    if (&parentPjson == &pjson) {
-      // just check existence, without altering
-      Maybe<uv_file> check = CheckFile(resolved.ToFilePath());
-      if (check.IsNothing()) {
-        return Nothing<URL>();
+    if (specifier.front() != '/') {
+      const PackageConfig& parentPjson = FindPackageConfig(env, base);
+      const PackageConfig& pjson = FindPackageConfig(env, resolved);
+      if (&parentPjson == &pjson) {
+        // just check existence, without altering
+        Maybe<uv_file> check = CheckFile(resolved.ToFilePath());
+        if (check.IsNothing()) {
+          return Nothing<URL>();
+        }
+        return Just(resolved);
       }
-      return Just(resolved);
     }
 
     Maybe<URL> file = ResolveExtensions<TRY_EXACT_NAME>(resolved);
