@@ -547,16 +547,29 @@ const PackageConfig& GetPackageConfig(Environment* env,
   return entry.first->second;
 }
 
+const PackageConfig& FindPackageConfig(Environment* env,
+                                       const URL& search) {
+  URL pjson_path("package.json", &search);
+  while (true) {
+    const PackageConfig& pkg_json =
+        GetPackageConfig(env, pjson_path.ToFilePath());
+    if (pkg_json.exists == Exists::Yes) {
+      return pkg_json;
+    }
+    URL last_pjson_path = pjson_path;
+    pjson_path = URL("../package.json", pjson_path);
+    // Terminates at root where ../package.json equals ../../package.json
+    // (can't just check "/package.json" for Windows support).
+    if (pjson_path.path().length() == last_pjson_path.path().length()) {
+      return pkg_json;
+    }
+  }
+}
+
 enum ResolveExtensionsOptions {
   TRY_EXACT_NAME,
   ONLY_VIA_EXTENSIONS
 };
-
-inline bool ResolvesToFile(const URL& search) {
-  std::string filePath = search.ToFilePath();
-  Maybe<uv_file> check = CheckFile(filePath);
-  return !check.IsNothing();
-}
 
 template <ResolveExtensionsOptions options>
 Maybe<URL> ResolveExtensions(const URL& search) {
@@ -595,20 +608,10 @@ Maybe<URL> ResolveMain(Environment* env, const URL& search) {
       pjson.has_main == HasMain::No) {
     return Nothing<URL>();
   }
-
-  URL resolved;
-  if (ShouldBeTreatedAsRelativeOrAbsolutePath(pjson.main)) {
-    resolved = URL(pjson.main, search);
-  } else {
-    resolved = URL("./" + pjson.main, search);
+  if (!ShouldBeTreatedAsRelativeOrAbsolutePath(pjson.main)) {
+    return Resolve(env, "./" + pjson.main, search, IgnoreMain);
   }
-  Maybe<URL> file = ResolveExtensions<TRY_EXACT_NAME>(resolved);
-  if (!file.IsNothing())
-    return file;
-  if (pjson.main.back() != '/') {
-    resolved = URL(pjson.main + "/", search);
-  }
-  return ResolveIndex(resolved);
+  return Resolve(env, pjson.main, search, IgnoreMain);
 }
 
 Maybe<URL> ResolveModule(Environment* env,
@@ -619,7 +622,7 @@ Maybe<URL> ResolveModule(Environment* env,
   do {
     dir = parent;
     Maybe<URL> check =
-        Resolve(env, "./node_modules/" + specifier, dir);
+        Resolve(env, "./node_modules/" + specifier, dir, CheckMain);
     if (!check.IsNothing()) {
       const size_t limit = specifier.find('/');
       const size_t spec_len =
@@ -639,11 +642,23 @@ Maybe<URL> ResolveModule(Environment* env,
   return Nothing<URL>();
 }
 
+Maybe<URL> ResolveDirectory(Environment* env,
+                            const URL& search,
+                            PackageMainCheck check_pjson_main) {
+  if (check_pjson_main) {
+    Maybe<URL> main = ResolveMain(env, search);
+    if (!main.IsNothing())
+      return main;
+  }
+  return ResolveIndex(search);
+}
+
 }  // anonymous namespace
 
 Maybe<URL> Resolve(Environment* env,
                    const std::string& specifier,
-                   const URL& base) {
+                   const URL& base,
+                   PackageMainCheck check_pjson_main) {
   URL pure_url(specifier);
   if (!(pure_url.flags() & URL_FLAGS_FAILED)) {
     // just check existence, without altering
@@ -658,9 +673,28 @@ Maybe<URL> Resolve(Environment* env,
   }
   if (ShouldBeTreatedAsRelativeOrAbsolutePath(specifier)) {
     URL resolved(specifier, base);
-    if (ResolvesToFile(resolved))
+
+    const PackageConfig& parentPjson = FindPackageConfig(env, base);
+    const PackageConfig& pjson = FindPackageConfig(env, resolved);
+    
+    // if resolving a relative path in the same package as the parent,
+    // don't support automatic extensions or directory resolution
+    if (&parentPjson == &pjson) {
+      // just check existence, without altering
+      Maybe<uv_file> check = CheckFile(resolved.ToFilePath());
+      if (check.IsNothing()) {
+        return Nothing<URL>();
+      }
       return Just(resolved);
-    return Nothing<URL>();
+    }
+
+    Maybe<URL> file = ResolveExtensions<TRY_EXACT_NAME>(resolved);
+    if (!file.IsNothing())
+      return file;
+    if (specifier.back() != '/') {
+      resolved = URL(specifier + "/", base);
+    }
+    return ResolveDirectory(env, resolved, check_pjson_main);
   } else {
     return ResolveModule(env, specifier, base);
   }
