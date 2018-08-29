@@ -1,4 +1,5 @@
 import { URL } from 'url';
+import process from 'process';
 
 const builtins = new Set(
   Object.keys(process.binding('natives')).filter(str =>
