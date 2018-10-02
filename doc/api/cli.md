@@ -169,13 +169,6 @@ added: REPLACEME
 
 Enable experimental diagnostic report feature.
 
-### `--experimental-vm-modules`
-<!-- YAML
-added: v9.6.0
--->
-
-Enable experimental ES Module support in the `vm` module.
-
 ### `--force-fips`
 <!-- YAML
 added: v6.0.0
@@ -685,7 +678,6 @@ Node.js options that are allowed are:
 - `--experimental-modules`
 - `--experimental-repl-await`
 - `--experimental-report`
-- `--experimental-vm-modules`
 - `--force-fips`
 - `--icu-data-dir`
 - `--inspect`
