@@ -97,13 +97,6 @@ added: v10.0.0
 
 Enable experimental top-level `await` keyword support in REPL.
 
-### `--experimental-vm-modules`
-<!-- YAML
-added: v9.6.0
--->
-
-Enable experimental ES Module support in the `vm` module.
-
 ### `--experimental-worker`
 <!-- YAML
 added: v10.5.0
@@ -569,7 +562,6 @@ Node.js options that are allowed are:
 - `--enable-fips`
 - `--experimental-modules`
 - `--experimental-repl-await`
-- `--experimental-vm-modules`
 - `--experimental-worker`
 - `--force-fips`
 - `--icu-data-dir`
