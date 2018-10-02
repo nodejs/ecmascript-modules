@@ -89,10 +89,6 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             "experimental await keyword support in REPL",
             &EnvironmentOptions::experimental_repl_await,
             kAllowedInEnvironment);
-  AddOption("--experimental-vm-modules",
-            "experimental ES Module support in vm module",
-            &EnvironmentOptions::experimental_vm_modules,
-            kAllowedInEnvironment);
   AddOption("--experimental-worker",
             "experimental threaded Worker support",
             &EnvironmentOptions::experimental_worker,
