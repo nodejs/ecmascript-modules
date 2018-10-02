@@ -91,9 +91,6 @@ static void Initialize(Local<Object> target,
     READONLY_BOOLEAN_PROPERTY("experimentalModules");
   }
 
-  if (env->options()->experimental_vm_modules)
-    READONLY_BOOLEAN_PROPERTY("experimentalVMModules");
-
   if (env->options()->experimental_worker)
     READONLY_BOOLEAN_PROPERTY("experimentalWorker");
 
