@@ -11,9 +11,8 @@
 Node.js is a JavaScript runtime built on Chrome's V8 JavaScript engine. For
 more information on using Node.js, see the [Node.js Website][].
 
-Node.js contributions, policies, and releases are managed under an
-[open governance model](./GOVERNANCE.md). The [Node.js Foundation][] provides
-support for the project.
+The Node.js project uses an [open governance model](./GOVERNANCE.md). The
+[Node.js Foundation][] provides support for the project.
 
 **This project is bound by a [Code of Conduct][].**
 
@@ -96,15 +95,15 @@ Binaries, installers, and source tarballs are available at
 
 The [latest](https://nodejs.org/download/release/latest/) directory is an
 alias for the latest Current release. The latest-_codename_ directory is an
-alias for the latest release from an LTS line. For example,
-<https://nodejs.org/download/release/latest-carbon> is the latest Carbon
-(Node.js version 8) release.
+alias for the latest release from an LTS line. For example, the
+[latest-carbon](https://nodejs.org/download/release/latest-carbon/) directory
+contains the latest Carbon (Node.js 8) release.
 
 #### Nightly Releases
 <https://nodejs.org/download/nightly/>
 
-Listed under their version string which includes their date (in UTC time) and
-the commit SHA at the HEAD of the release.
+Each directory name and filename contains a date (in UTC time) and the commit
+SHA at the HEAD of the release.
 
 #### API Documentation
 
@@ -155,9 +154,8 @@ the file's signature.
 
 ## Building Node.js
 
-See [BUILDING.md](BUILDING.md) for instructions on how to build
-Node.js from source. The document also contains a list of
-officially supported platforms.
+See [BUILDING.md](BUILDING.md) for instructions on how to build Node.js from
+source and a list of supported platforms.
 
 ## Security
 
@@ -608,8 +606,8 @@ gpg --keyserver pool.sks-keyservers.net --recv-keys C4F0DFFF4E8C1A8236409D08E73B
 gpg --keyserver pool.sks-keyservers.net --recv-keys DD8F2338BAE7501E3DD5AC78C273792F7D83545D
 ```
 
-See the section above on [Verifying Binaries](#verifying-binaries) for details
-on what to do with these keys to verify that a downloaded file is official.
+See the section above on [Verifying Binaries](#verifying-binaries) for how to
+use these keys to verify a downloaded file.
 
 Previous releases may also have been signed with one of the following GPG keys:
 
