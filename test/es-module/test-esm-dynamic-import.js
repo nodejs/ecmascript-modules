@@ -19,7 +19,7 @@ function expectErrorProperty(result, propertyKey, value) {
 }
 
 function expectMissingModuleError(result) {
-  expectErrorProperty(result, 'code', 'MODULE_NOT_FOUND');
+  expectErrorProperty(result, 'code', 'ERR_MODULE_NOT_FOUND');
 }
 
 function expectInvalidUrlError(result) {
