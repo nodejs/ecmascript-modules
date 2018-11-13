@@ -179,12 +179,39 @@ _ESM_RESOLVE_:
 > 1. Assert: _packageSpecifier_ is a bare specifier.
 > 1. If _packageSpecifier_ is a Node.js builtin module then,
 >    1. Return _"node:${packageSpecifier}"_.
+> 1. Set _package_ to the result of
+>    **FIND_PACKAGE_BOUNDARY**(_packageSpecifier_, _parentURL_).
+> 1. Set _meta_ to the result of loading the resource at _package.metaURL_ as JSON.
+> 1. Set _packagePath_ to the result of removing _package.name_
+>    from the beginning of _packageSpecifier_.
+> 1. Set _directResolution_ to _meta.exports\[packagePath]_.
+> 1. If _directResolution_ is a string,
+>    1. Return the URL resolution of _directResolution_ relative to _package.metaURL_.
+> 1. Set _directoryKeys_ to the list of _meta.exports_ keys that end with "/",
+>    sorted descending by length (longest key first).
+> 1. For each _directoryKey_ in _directoryKeys_,
+>    1. If _packagePath_ begins with _directoryKey_,
+>       1. Set _directoryPath_ to the result of removing _directoryKey_ from the
+>          beginning of _packagePath_.
+>       1. Set _directoryResolution_ to "${_meta.exports\[_directoryKey_]}".
+>       1. Assert: _directoryResolution_ ends with "/".
+>       1. Return the URL resolution of "${_directoryResolution_}${_directoryPath_}"
+>          relative to _package.metaURL_.
+> 1. Throw a _Module Not Found_ error.
+
+**FIND_PACKAGE_BOUNDARY**(_packageSpecifier_, _parentURL_)
 > 1. While _parentURL_ contains a non-empty _pathname_,
 >    1. Set _parentURL_ to the parent folder URL of _parentURL_.
->    1. Let _packageURL_ be the URL resolution of
->       _"${parentURL}/node_modules/${packageSpecifier}"_.
->    1. If the file at _packageURL_ exists then,
->       1. Return _packageURL_.
+>    1. Set _packageNameSegments_ to an empty list
+>    1. While _packageNameSegments_ does not include all of _packageSpecifier_,
+>       1. Append the next path segment of __packageSpecifier_
+>          to __packageNameSegments_.
+>       1. Set _packageName_ to "${_packageNameSegments_.join("/")}"
+>       1. Let _packageMetaURL_ be the URL resolution of
+>          _"${_parentURL_}/node_modules/${_packageName_}/package.json"_.
+>       1. If a resource with content-type "application/json" exists
+>          at _packageMetaURL_,
+>          1. Return { metaURL: _packageMetaURL_, name: _packageName_ }.
 > 1. Throw a _Module Not Found_ error.
 
 [Node.js EP for ES Modules]: https://github.com/nodejs/node-eps/blob/master/002-es-modules.md
