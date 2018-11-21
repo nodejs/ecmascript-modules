@@ -166,7 +166,8 @@ _ESM_RESOLVE_:
 >    1. Set _resolvedURL_ to the result of parsing and reserializing
 >       _specifier_ as a URL.
 > 1. Otherwise, if _specifier_ starts with _"/"_, _"./"_ or _"../"_ then,
->    1. Set _resolvedURL_ to the URL resolution of _specifier_ relative to _parentURL_.
+>    1. Set _resolvedURL_ to the URL resolution of _specifier_ relative to
+>       _parentURL_.
 > 1. Otherwise,
 >    1. Note: _specifier_ is now a bare specifier.
 >    1. Set _resolvedURL_ the result of
