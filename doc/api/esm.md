@@ -179,11 +179,11 @@ _ESM_RESOLVE_:
 **PACKAGE_RESOLVE**(_packageSpecifier_, _parentURL_)
 > 1. Assert: _packageSpecifier_ is a bare specifier.
 > 1. If _packageSpecifier_ is a Node.js builtin module then,
->    1. Return _"node:${packageSpecifier}"_.
+>    1. Return the string _"node:"_ concatenated with _packageSpecifier_.
 > 1. While _parentURL_ contains a non-empty _pathname_,
 >    1. Set _parentURL_ to the parent folder URL of _parentURL_.
->    1. Let _packageURL_ be the URL resolution of
->       _"${parentURL}/node_modules/${packageSpecifier}"_.
+>    1. Let _packageURL_ be the URL resolution of the string concatenation of
+>       _parentURL_, _"/node_modules/"_ and _"packageSpecifier"_.
 >    1. If the file at _packageURL_ exists then,
 >       1. Return _packageURL_.
 > 1. Throw a _Module Not Found_ error.
