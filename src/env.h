@@ -92,6 +92,7 @@ struct PackageConfig {
   enum class Exists { Yes, No };
   enum class IsValid { Yes, No };
   enum class HasMain { Yes, No };
+  enum class HasExports { Yes, No };
   enum PackageType : uint32_t { None = 0, CommonJS, Module };
 
   const Exists exists;
@@ -99,6 +100,9 @@ struct PackageConfig {
   const HasMain has_main;
   const std::string main;
   const PackageType type;
+
+  const HasExports has_exports;
+  const v8::CopyablePersistentTraits<v8::Value>::CopyablePersistent exports;
 };
 }  // namespace loader
 
