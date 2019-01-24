@@ -24,10 +24,6 @@ enum HostDefinedOptions : int {
   kLength = 10,
 };
 
-v8::Maybe<url::URL> Resolve(Environment* env,
-                            const std::string& specifier,
-                            const url::URL& base);
-
 class ModuleWrap : public BaseObject {
  public:
   static const std::string EXTENSIONS[];

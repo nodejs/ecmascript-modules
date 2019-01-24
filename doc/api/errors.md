@@ -1267,6 +1267,11 @@ An invalid or unexpected value was passed in an options object.
 
 An invalid or unknown file encoding was passed.
 
+<a id="ERR_INVALID_PACKAGE_CONFIG"></a>
+### ERR_INVALID_PACKAGE_CONFIG
+
+An invalid `package.json` file was found which failed parsing.
+
 <a id="ERR_INVALID_PERFORMANCE_MARK"></a>
 ### ERR_INVALID_PERFORMANCE_MARK
 
@@ -2213,6 +2218,32 @@ A non-specific HTTP/2 error has occurred.
 Used in the `repl` in case the old history file is used and an error occurred
 while trying to read and parse it.
 
+<a id="ERR_INVALID_REPL_TYPE"></a>
+### ERR_INVALID_REPL_TYPE
+
+> Stability: 1 - Experimental
+
+The `--type=...` flag is not compatible with the Node.js REPL.
+
+<a id="ERR_TYPE_MISMATCH"></a>
+### ERR_TYPE_MISMATCH
+
+> Stability: 1 - Experimental
+
+The `--type=commonjs` flag was used to attempt to execute an `.mjs` file or
+a `.js` file where the nearest parent `package.json` contains
+`"type": "module"`; or
+the `--type=module` flag was used to attempt to execute a `.cjs` file or
+a `.js` file where the nearest parent `package.json` either lacks a `"type"`
+field or contains `"type": "commonjs"`.
+
+<a id="ERR_INVALID_TYPE_FLAG"></a>
+### ERR_INVALID_TYPE_FLAG
+
+> Stability: 1 - Experimental
+
+An invalid `--type=...` flag value was provided.
+
 <a id="ERR_MISSING_DYNAMIC_INSTANTIATE_HOOK"></a>
 #### ERR_MISSING_DYNAMIC_INSTANTIATE_HOOK
 
@@ -2242,7 +2273,6 @@ size.
 
 This `Error` is thrown when a read is attempted on a TTY `WriteStream`,
 such as `process.stdout.on('data')`.
-
 
 [`'uncaughtException'`]: process.html#process_event_uncaughtexception
 [`--force-fips`]: cli.html#cli_force_fips

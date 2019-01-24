@@ -45,6 +45,8 @@ void FatalException(v8::Isolate* isolate,
   V(ERR_CONSTRUCT_CALL_REQUIRED, Error)                                      \
   V(ERR_INVALID_ARG_VALUE, TypeError)                                        \
   V(ERR_INVALID_ARG_TYPE, TypeError)                                         \
+  V(ERR_INVALID_MODULE_SPECIFIER, TypeError)                                 \
+  V(ERR_INVALID_PACKAGE_CONFIG, SyntaxError)                                 \
   V(ERR_INVALID_TRANSFER_OBJECT, TypeError)                                  \
   V(ERR_MEMORY_ALLOCATION_FAILED, Error)                                     \
   V(ERR_MISSING_ARGS, TypeError)                                             \
