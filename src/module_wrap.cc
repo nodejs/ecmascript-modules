@@ -43,8 +43,6 @@ using v8::String;
 using v8::Undefined;
 using v8::Value;
 
-static const char* const EXTENSIONS[] = {".mjs"};
-
 ModuleWrap::ModuleWrap(Environment* env,
                        Local<Object> object,
                        Local<Module> module,
@@ -469,14 +467,30 @@ std::string ReadFile(uv_file file) {
 }
 
 enum DescriptorType {
-  NONE,
   FILE,
-  DIRECTORY
+  DIRECTORY,
+  NONE
 };
 
-DescriptorType CheckDescriptor(const std::string& path) {
+// When DescriptorType cache is added, this can also return
+// Nothing for the "null" cache entries.
+inline Maybe<uv_file> OpenDescriptor(const std::string& path) {
   uv_fs_t fs_req;
-  int rc = uv_fs_stat(nullptr, &fs_req, path.c_str(), nullptr);
+  uv_file fd = uv_fs_open(nullptr, &fs_req, path.c_str(), O_RDONLY, 0, nullptr);
+  uv_fs_req_cleanup(&fs_req);
+  if (fd < 0) return Nothing<uv_file>();
+  return Just(fd);
+}
+
+inline void CloseDescriptor(uv_file fd) {
+  uv_fs_t fs_req;
+  uv_fs_close(nullptr, &fs_req, fd, nullptr);
+  uv_fs_req_cleanup(&fs_req);
+}
+
+inline DescriptorType CheckDescriptorAtFile(uv_file fd) {
+  uv_fs_t fs_req;
+  int rc = uv_fs_fstat(nullptr, &fs_req, fd, nullptr);
   if (rc == 0) {
     uint64_t is_directory = fs_req.statbuf.st_mode & S_IFDIR;
     uv_fs_req_cleanup(&fs_req);
@@ -486,27 +500,320 @@ DescriptorType CheckDescriptor(const std::string& path) {
   return NONE;
 }
 
-Maybe<URL> PackageResolve(Environment* env,
+// TODO(@guybedford): Add a DescriptorType cache layer here.
+// Should be directory based -> if path/to/dir doesn't exist
+// then the cache should early-fail any path/to/dir/file check.
+DescriptorType CheckDescriptorAtPath(const std::string& path) {
+  Maybe<uv_file> fd = OpenDescriptor(path);
+  if (fd.IsNothing()) return NONE;
+  DescriptorType type = CheckDescriptorAtFile(fd.FromJust());
+  CloseDescriptor(fd.FromJust());
+  return type;
+}
+
+Maybe<std::string> ReadIfFile(const std::string& path) {
+  Maybe<uv_file> fd = OpenDescriptor(path);
+  if (fd.IsNothing()) return Nothing<std::string>();
+  DescriptorType type = CheckDescriptorAtFile(fd.FromJust());
+  if (type != FILE) return Nothing<std::string>();
+  std::string source = ReadFile(fd.FromJust());
+  CloseDescriptor(fd.FromJust());
+  return Just(source);
+}
+
+using Exists = PackageConfig::Exists;
+using IsValid = PackageConfig::IsValid;
+using HasMain = PackageConfig::HasMain;
+using IsESM = PackageConfig::IsESM;
+
+Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
+                                             const std::string& path,
+                                             const URL& base) {
+  auto existing = env->package_json_cache.find(path);
+  if (existing != env->package_json_cache.end()) {
+    return Just(&existing->second);
+  }
+
+  Maybe<std::string> source = ReadIfFile(path);
+
+  if (source.IsNothing()) {
+    auto entry = env->package_json_cache.emplace(path,
+        PackageConfig { Exists::No, IsValid::Yes, HasMain::No, "",
+                        IsESM::No });
+    return Just(&entry.first->second);
+  }
+
+  std::string pkg_src = source.FromJust();
+
+  Isolate* isolate = env->isolate();
+  v8::HandleScope handle_scope(isolate);
+
+  bool parsed = false;
+  Local<Object> pkg_json;
+  {
+    Local<String> src;
+    Local<Value> pkg_json_v;
+    if (String::NewFromUtf8(isolate,
+                            pkg_src.c_str(),
+                            v8::NewStringType::kNormal,
+                            pkg_src.length()).ToLocal(&src) &&
+        v8::JSON::Parse(env->context(), src).ToLocal(&pkg_json_v) &&
+        pkg_json_v->ToObject(env->context()).ToLocal(&pkg_json)) {
+      parsed = true;
+    }
+  }
+
+  if (!parsed) {
+    (void)env->package_json_cache.emplace(path,
+        PackageConfig { Exists::Yes, IsValid::No, HasMain::No, "",
+                        IsESM::No });
+    std::string msg = "Invalid JSON in '" + path +
+        "' imported from " + base.ToFilePath();
+    node::THROW_ERR_INVALID_PACKAGE_CONFIG(env, msg.c_str());
+    return Nothing<const PackageConfig*>();
+  }
+
+  Local<Value> pkg_main;
+  HasMain::Bool has_main = HasMain::No;
+  std::string main_std;
+  if (pkg_json->Get(env->context(), env->main_string()).ToLocal(&pkg_main)) {
+    if (pkg_main->IsString()) {
+      has_main = HasMain::Yes;
+    }
+    Utf8Value main_utf8(isolate, pkg_main);
+    main_std.assign(std::string(*main_utf8, main_utf8.length()));
+  }
+
+  IsESM::Bool esm = IsESM::No;
+  Local<Value> type_v;
+  if (pkg_json->Get(env->context(), env->type_string()).ToLocal(&type_v)) {
+    if (type_v->StrictEquals(env->esm_string())) {
+      esm = IsESM::Yes;
+    }
+  }
+
+  Local<Value> exports_v;
+  if (pkg_json->Get(env->context(),
+      env->exports_string()).ToLocal(&exports_v) &&
+      (exports_v->IsObject() || exports_v->IsString() ||
+      exports_v->IsBoolean())) {
+    Persistent<Value> exports;
+    // esm = IsESM::Yes;
+    exports.Reset(env->isolate(), exports_v);
+
+    auto entry = env->package_json_cache.emplace(path,
+        PackageConfig { Exists::Yes, IsValid::Yes, has_main, main_std,
+                        esm });
+    return Just(&entry.first->second);
+  }
+
+  auto entry = env->package_json_cache.emplace(path,
+      PackageConfig { Exists::Yes, IsValid::Yes, has_main, main_std,
+                      esm });
+  return Just(&entry.first->second);
+}
+
+Maybe<const PackageConfig*> GetPackageBoundaryConfig(Environment* env,
+                                                     const URL& search,
+                                                     const URL& base) {
+  URL pjson_url("package.json", &search);
+  while (true) {
+    Maybe<const PackageConfig*> pkg_cfg =
+        GetPackageConfig(env, pjson_url.ToFilePath(), base);
+    if (pkg_cfg.IsNothing()) return pkg_cfg;
+    if (pkg_cfg.FromJust()->exists == Exists::Yes) return pkg_cfg;
+
+    URL last_pjson_url = pjson_url;
+    pjson_url = URL("../package.json", pjson_url);
+
+    // Terminates at root where ../package.json equals ../../package.json
+    // (can't just check "/package.json" for Windows support).
+    if (pjson_url.path() == last_pjson_url.path()) {
+      auto entry = env->package_json_cache.emplace(pjson_url.ToFilePath(),
+          PackageConfig { Exists::No, IsValid::Yes, HasMain::No, "",
+                          IsESM::No });
+      return Just(&entry.first->second);
+    }
+  }
+}
+
+/*
+ * Legacy CommonJS main resolution:
+ * 1. let M = pkg_url + (json main field)
+ * 2. TRY(M, M.js, M.json, M.node)
+ * 3. TRY(M/index.js, M/index.json, M/index.node)
+ * 4. TRY(pkg_url/index.js, pkg_url/index.json, pkg_url/index.node)
+ * 5. NOT_FOUND
+ */
+inline bool FileExists(const URL& url) {
+  return CheckDescriptorAtPath(url.ToFilePath()) == FILE;
+}
+Maybe<URL> LegacyMainResolve(const URL& pjson_url,
+                             const PackageConfig& pcfg) {
+  URL guess;
+  if (pcfg.has_main == HasMain::Yes) {
+    // Note: fs check redundances will be handled by Descriptor cache here.
+    if (FileExists(guess = URL("./" + pcfg.main, pjson_url))) {
+      return Just(guess);
+    }
+    if (FileExists(guess = URL("./" + pcfg.main + ".js", pjson_url))) {
+      return Just(guess);
+    }
+    if (FileExists(guess = URL("./" + pcfg.main + ".json", pjson_url))) {
+      return Just(guess);
+    }
+    if (FileExists(guess = URL("./" + pcfg.main + ".node", pjson_url))) {
+      return Just(guess);
+    }
+    if (FileExists(guess = URL("./" + pcfg.main + "/index.js", pjson_url))) {
+      return Just(guess);
+    }
+    // Such stat.
+    if (FileExists(guess = URL("./" + pcfg.main + "/index.json", pjson_url))) {
+      return Just(guess);
+    }
+    if (FileExists(guess = URL("./" + pcfg.main + "/index.node", pjson_url))) {
+      return Just(guess);
+    }
+    // Fallthrough.
+  }
+  if (FileExists(guess = URL("./index.js", pjson_url))) {
+    return Just(guess);
+  }
+  // So fs.
+  if (FileExists(guess = URL("./index.json", pjson_url))) {
+    return Just(guess);
+  }
+  if (FileExists(guess = URL("./index.node", pjson_url))) {
+    return Just(guess);
+  }
+  // Not found.
+  return Nothing<URL>();
+}
+
+Maybe<ModuleResolution> FinalizeResolution(Environment* env,
+                                           const URL& resolved,
+                                           const URL& base,
+                                           bool check_exists,
+                                           bool is_main) {
+  const std::string& path = resolved.ToFilePath();
+
+  if (check_exists && CheckDescriptorAtPath(path) != FILE) {
+    std::string msg = "Cannot find module '" + path +
+        "' imported from " + base.ToFilePath();
+    node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
+    return Nothing<ModuleResolution>();
+  }
+
+  Maybe<const PackageConfig*> pcfg =
+      GetPackageBoundaryConfig(env, resolved, base);
+  if (pcfg.IsNothing()) return Nothing<ModuleResolution>();
+
+  if (pcfg.FromJust()->exists == Exists::No) {
+    return Just(ModuleResolution { resolved, true });
+  }
+
+  return Just(ModuleResolution {
+      resolved, pcfg.FromJust()->esm == IsESM::No });
+}
+
+Maybe<ModuleResolution> PackageMainResolve(Environment* env,
+                                           const URL& pjson_url,
+                                           const PackageConfig& pcfg,
+                                           const URL& base) {
+  if (pcfg.exists == Exists::No || (
+      pcfg.esm == IsESM::Yes && pcfg.has_main == HasMain::No)) {
+    std::string msg = "Cannot find main entry point for '" +
+        URL(".", pjson_url).ToFilePath() + "' imported from " +
+        base.ToFilePath();
+    node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
+    return Nothing<ModuleResolution>();
+  }
+  if (pcfg.has_main == HasMain::Yes &&
+      pcfg.main.substr(pcfg.main.length() - 4, 4) == ".mjs") {
+    return FinalizeResolution(env, URL(pcfg.main, pjson_url), base, true,
+                              true);
+  }
+  if (pcfg.esm == IsESM::Yes &&
+      pcfg.main.substr(pcfg.main.length() - 3, 3) == ".js") {
+    return FinalizeResolution(env, URL(pcfg.main, pjson_url), base, true,
+                              true);
+  }
+
+  Maybe<URL> resolved = LegacyMainResolve(pjson_url, pcfg);
+  // Legacy main resolution error
+  if (resolved.IsNothing()) {
+    return Nothing<ModuleResolution>();
+  }
+  return FinalizeResolution(env, resolved.FromJust(), base, false, true);
+}
+
+Maybe<ModuleResolution> PackageResolve(Environment* env,
                           const std::string& specifier,
                           const URL& base) {
-  URL parent(".", base);
+  size_t sep_index = specifier.find('/');
+  if (specifier[0] == '@' && (sep_index == std::string::npos ||
+      specifier.length() == 0)) {
+    std::string msg = "Invalid package name '" + specifier +
+      "' imported from " + base.ToFilePath();
+    node::THROW_ERR_INVALID_MODULE_SPECIFIER(env, msg.c_str());
+    return Nothing<ModuleResolution>();
+  }
+  bool scope = false;
+  if (specifier[0] == '@') {
+    scope = true;
+    sep_index = specifier.find('/', sep_index + 1);
+  }
+  std::string pkg_name = specifier.substr(0,
+      sep_index == std::string::npos ? std::string::npos : sep_index);
+  std::string pkg_subpath;
+  if ((sep_index == std::string::npos ||
+      sep_index == specifier.length() - 1)) {
+    pkg_subpath = "";
+  } else {
+    pkg_subpath = "." + specifier.substr(sep_index);
+  }
+  URL pjson_url("./node_modules/" + pkg_name + "/package.json", &base);
+  std::string pjson_path = pjson_url.ToFilePath();
   std::string last_path;
   do {
-    URL pkg_url("./node_modules/" + specifier, &parent);
-    DescriptorType check = CheckDescriptor(pkg_url.ToFilePath());
-    if (check == FILE) return Just(pkg_url);
-    last_path = parent.path();
-    parent = URL("..", &parent);
-    // cross-platform root check
-  } while (parent.path() != last_path);
-  return Nothing<URL>();
+    DescriptorType check =
+        CheckDescriptorAtPath(pjson_path.substr(0, pjson_path.length() - 13));
+    if (check != DIRECTORY) {
+      last_path = pjson_path;
+      pjson_url = URL((scope ?
+          "../../../../node_modules/" : "../../../node_modules/") +
+          pkg_name + "/package.json", &pjson_url);
+      pjson_path = pjson_url.ToFilePath();
+      continue;
+    }
+
+    // Package match.
+    Maybe<const PackageConfig*> pcfg = GetPackageConfig(env, pjson_path, base);
+    // Invalid package configuration error.
+    if (pcfg.IsNothing()) return Nothing<ModuleResolution>();
+    if (!pkg_subpath.length()) {
+      return PackageMainResolve(env, pjson_url, *pcfg.FromJust(), base);
+    } else {
+      return FinalizeResolution(env, URL(pkg_subpath, pjson_url),
+                                base, true, false);
+    }
+    CHECK(false);
+    // Cross-platform root check.
+  } while (pjson_url.path().length() != last_path.length());
+
+  std::string msg = "Cannot find package '" + pkg_name +
+      "' imported from " + base.ToFilePath();
+  node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
+  return Nothing<ModuleResolution>();
 }
 
 }  // anonymous namespace
 
-Maybe<URL> Resolve(Environment* env,
-                   const std::string& specifier,
-                   const URL& base) {
+Maybe<ModuleResolution> Resolve(Environment* env,
+                                const std::string& specifier,
+                                const URL& base,
+                                bool is_main) {
   // Order swapped from spec for minor perf gain.
   // Ok since relative URLs cannot parse as URLs.
   URL resolved;
@@ -520,21 +827,14 @@ Maybe<URL> Resolve(Environment* env,
       return PackageResolve(env, specifier, base);
     }
   }
-  DescriptorType check = CheckDescriptor(resolved.ToFilePath());
-  if (check != FILE) {
-    std::string msg = "Cannot find module '" + resolved.ToFilePath() +
-          "' imported from " + base.ToFilePath();
-    node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
-    return Nothing<URL>();
-  }
-  return Just(resolved);
+  return FinalizeResolution(env, resolved, base, true, is_main);
 }
 
 void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  // module.resolve(specifier, url)
-  CHECK_EQ(args.Length(), 2);
+  // module.resolve(specifier, url, is_main)
+  CHECK_EQ(args.Length(), 3);
 
   CHECK(args[0]->IsString());
   Utf8Value specifier_utf8(env->isolate(), args[0]);
@@ -544,28 +844,41 @@ void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   Utf8Value url_utf8(env->isolate(), args[1]);
   URL url(*url_utf8, url_utf8.length());
 
+  CHECK(args[2]->IsBoolean());
+
   if (url.flags() & URL_FLAGS_FAILED) {
     return node::THROW_ERR_INVALID_ARG_TYPE(
         env, "second argument is not a URL string");
   }
 
   TryCatchScope try_catch(env);
-  Maybe<URL> result = node::loader::Resolve(env, specifier_std, url);
-  if (try_catch.HasCaught()) {
-    try_catch.ReThrow();
-    return;
-  } else if (result.IsNothing() ||
-             (result.FromJust().flags() & URL_FLAGS_FAILED)) {
-    std::string msg = "Cannot find module '" + specifier_std +
-        "' imported from " + url.ToFilePath();
-    node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
+  Maybe<ModuleResolution> result =
+      node::loader::Resolve(env, specifier_std, url, args[2]->IsTrue());
+  if (result.IsNothing()) {
+    CHECK(try_catch.HasCaught());
     try_catch.ReThrow();
     return;
   }
+  CHECK(!try_catch.HasCaught());
 
-  MaybeLocal<Value> obj = result.FromJust().ToObject(env);
-  if (!obj.IsEmpty())
-    args.GetReturnValue().Set(obj.ToLocalChecked());
+  ModuleResolution resolution = result.FromJust();
+  CHECK(!(resolution.url.flags() & URL_FLAGS_FAILED));
+
+  Local<Object> resolved = Object::New(env->isolate());
+
+  resolved->DefineOwnProperty(
+      env->context(),
+      env->url_string(),
+      resolution.url.ToObject(env).ToLocalChecked(),
+      v8::ReadOnly).FromJust();
+
+  resolved->DefineOwnProperty(
+      env->context(),
+      env->legacy_string(),
+      v8::Boolean::New(env->isolate(), resolution.legacy),
+      v8::ReadOnly).FromJust();
+
+    args.GetReturnValue().Set(resolved);
 }
 
 static MaybeLocal<Promise> ImportModuleDynamically(
