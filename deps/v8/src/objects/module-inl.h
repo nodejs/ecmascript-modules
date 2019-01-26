@@ -30,6 +30,7 @@ SMI_ACCESSORS(Module, status, kStatusOffset)
 SMI_ACCESSORS(Module, dfs_index, kDfsIndexOffset)
 SMI_ACCESSORS(Module, dfs_ancestor_index, kDfsAncestorIndexOffset)
 SMI_ACCESSORS(Module, hash, kHashOffset)
+SMI_ACCESSORS(Module, module_type, kModuleTypeOffset)
 
 ModuleInfo* Module::info() const {
   return (status() >= kEvaluating)

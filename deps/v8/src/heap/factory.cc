@@ -3053,6 +3053,36 @@ Handle<Module> Factory::NewModule(Handle<SharedFunctionInfo> code) {
   module->set_import_meta(roots.the_hole_value());
   module->set_dfs_index(-1);
   module->set_dfs_ancestor_index(-1);
+  module->set_module_type(Module::Type::kSourceTextModule);
+  return module;
+}
+
+Handle<Module> Factory::NewDynamicModule() {
+  Handle<ObjectHashTable> exports = ObjectHashTable::New(isolate(), 0);
+  // For dynamic modules, regular_exports is an
+  // ArrayList until execution completion.
+  Handle<ArrayList> regular_exports = ArrayList::New(isolate(), 0);
+  Handle<ArrayList> dynamic_namespaces = ArrayList::New(isolate(), 0);
+
+  ReadOnlyRoots roots(isolate());
+
+  Handle<Module> module = Handle<Module>::cast(NewStruct(MODULE_TYPE, TENURED));
+
+  module->set_code(roots.undefined_value());
+  module->set_exports(*exports);
+  module->set_regular_exports(*regular_exports);
+  // Dynamic modules reuse regular_imports to track dynamic_namespaces.
+  module->set_regular_imports(*dynamic_namespaces);
+  module->set_hash(isolate()->GenerateIdentityHash(Smi::kMaxValue));
+  module->set_module_namespace(roots.undefined_value());
+  module->set_requested_modules(roots.empty_fixed_array());
+  // module->set_script();
+  module->set_status(Module::kUninstantiated);
+  module->set_exception(roots.the_hole_value());
+  module->set_import_meta(roots.the_hole_value());
+  module->set_dfs_index(-1);
+  module->set_dfs_ancestor_index(-1);
+  module->set_module_type(Module::Type::kDynamicModule);
   return module;
 }
 

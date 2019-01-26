@@ -598,6 +598,8 @@ class ErrorUtils : public AllStatic {
   T(DuplicateExport, "Duplicate export of '%'")                                \
   T(DuplicateProto,                                                            \
     "Duplicate __proto__ fields are not allowed in object literals")           \
+  T(DynamicModuleStarExport,                                                   \
+    "Star exports from dynamic module '%' are not allowed")                    \
   T(ForInOfLoopInitializer,                                                    \
     "% loop variable declaration may not have an initializer.")                \
   T(ForInOfLoopMultiBindings,                                                  \

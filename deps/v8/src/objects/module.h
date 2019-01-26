@@ -65,6 +65,10 @@ class Module : public Struct, public NeverReadOnlySpaceObject {
     kErrored
   };
 
+  // TODO(neis): Don't store those in the module object?
+  DECL_INT_ACCESSORS(dfs_index)
+  DECL_INT_ACCESSORS(dfs_ancestor_index)
+
   // The exception in the case {status} is kErrored.
   Object* GetException();
 
@@ -87,6 +91,10 @@ class Module : public Struct, public NeverReadOnlySpaceObject {
   // Lazily initialized on first access. It's the hole before first access and
   // a JSObject afterwards.
   DECL_ACCESSORS(import_meta, Object)
+
+  // Whether this module represents a dynamic module
+  DECL_INT_ACCESSORS(module_type)
+  enum Type { kSourceTextModule, kDynamicModule };
 
   // Get the ModuleInfo associated with the code.
   inline ModuleInfo* info() const;
@@ -111,6 +119,10 @@ class Module : public Struct, public NeverReadOnlySpaceObject {
 
   static int ImportIndex(int cell_index);
   static int ExportIndex(int cell_index);
+
+  static Handle<Cell> CreateDynamicExport(Isolate* isolate,
+                                          Handle<Module> module,
+                                          Handle<String> name);
 
   // Get the namespace object for [module_request] of [module].  If it doesn't
   // exist yet, it is created.
@@ -137,24 +149,13 @@ class Module : public Struct, public NeverReadOnlySpaceObject {
   static const int kExceptionOffset = kDfsAncestorIndexOffset + kPointerSize;
   static const int kScriptOffset = kExceptionOffset + kPointerSize;
   static const int kImportMetaOffset = kScriptOffset + kPointerSize;
-  static const int kSize = kImportMetaOffset + kPointerSize;
+  static const int kModuleTypeOffset = kImportMetaOffset + kPointerSize;
+  static const int kSize = kModuleTypeOffset + kPointerSize;
 
  private:
   friend class Factory;
 
   DECL_ACCESSORS(exception, Object)
-
-  // TODO(neis): Don't store those in the module object?
-  DECL_INT_ACCESSORS(dfs_index)
-  DECL_INT_ACCESSORS(dfs_ancestor_index)
-
-  // Helpers for Instantiate and Evaluate.
-
-  static void CreateExport(Isolate* isolate, Handle<Module> module,
-                           int cell_index, Handle<FixedArray> names);
-  static void CreateIndirectExport(Isolate* isolate, Handle<Module> module,
-                                   Handle<String> name,
-                                   Handle<ModuleInfoEntry> entry);
 
   // The [must_resolve] argument indicates whether or not an exception should be
   // thrown in case the module does not provide an export named [name]

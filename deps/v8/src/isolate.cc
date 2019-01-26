@@ -4042,6 +4042,18 @@ void Isolate::SetHostInitializeImportMetaObjectCallback(
   host_initialize_import_meta_object_callback_ = callback;
 }
 
+void Isolate::RunHostExecuteDynamicModuleCallback(Handle<Context> context,
+                                                  Handle<Module> module) {
+  v8::Local<v8::Context> api_context = Utils::ToLocal(context);
+  host_execute_dynamic_module_callback_(
+      api_context, Utils::Convert<v8::internal::Object, DynamicModule>(module));
+}
+
+void Isolate::SetHostExecuteDynamicModuleCallback(
+    HostExecuteDynamicModuleCallback callback) {
+  host_execute_dynamic_module_callback_ = callback;
+}
+
 MaybeHandle<Object> Isolate::RunPrepareStackTraceCallback(
     Handle<Context> context, Handle<JSObject> error) {
   v8::Local<v8::Context> api_context = Utils::ToLocal(context);

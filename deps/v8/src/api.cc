@@ -2292,6 +2292,79 @@ MaybeLocal<Value> Module::Evaluate(Local<Context> context) {
   RETURN_ESCAPED(result);
 }
 
+class IsIdentifierHelper {
+ public:
+  IsIdentifierHelper() : is_identifier_(false), first_char_(true) {}
+
+  bool Check(i::String* string) {
+    i::ConsString* cons_string = i::String::VisitFlat(this, string, 0);
+    if (cons_string == nullptr) return is_identifier_;
+    // We don't support cons strings here.
+    return false;
+  }
+  void VisitOneByteString(const uint8_t* chars, int length) {
+    for (int i = 0; i < length; ++i) {
+      if (first_char_) {
+        first_char_ = false;
+        is_identifier_ = unicode_cache_.IsIdentifierStart(chars[0]);
+      } else {
+        is_identifier_ &= unicode_cache_.IsIdentifierPart(chars[i]);
+      }
+    }
+  }
+  void VisitTwoByteString(const uint16_t* chars, int length) {
+    for (int i = 0; i < length; ++i) {
+      if (first_char_) {
+        first_char_ = false;
+        is_identifier_ = unicode_cache_.IsIdentifierStart(chars[0]);
+      } else {
+        is_identifier_ &= unicode_cache_.IsIdentifierPart(chars[i]);
+      }
+    }
+  }
+
+ private:
+  bool is_identifier_;
+  bool first_char_;
+  i::UnicodeCache unicode_cache_;
+  DISALLOW_COPY_AND_ASSIGN(IsIdentifierHelper);
+};
+
+bool DynamicModule::SetExport(Isolate* v8_isolate, Local<String> export_name,
+                              Local<Value> value) {
+  Utils::ApiCheck(
+      GetStatus() >= kEvaluating, "v8::Module::SetExport",
+      "v8::DynamicModule::SetExport must be used after instantiation");
+  i::Isolate* isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  i::Handle<i::Module> self = Utils::OpenHandle(this);
+  i::Handle<i::String> name = Utils::OpenHandle(*(export_name));
+  i::Handle<i::Object> object(self->exports()->Lookup(name), isolate);
+
+  i::Handle<i::Object> val = Utils::OpenHandle(*(value));
+
+  // Exports can be defined while executing
+  if (!object->IsCell()) {
+    if (GetStatus() == kEvaluating) {
+      i::Handle<i::String> internal_name =
+          isolate->factory()->InternalizeString(name);
+      // Return *false* for any invalid identifier passed
+      IsIdentifierHelper helper;
+      if (!helper.Check(*internal_name)) return false;
+      auto cell = i::Module::CreateDynamicExport(isolate, self, internal_name);
+      cell->set_value(*val);
+      return true;
+    }
+    else {
+      Utils::ApiCheck(object->IsCell(), "v8::Module::SetExport",
+                      "v8::Module::SetExport unable to find local export name");
+    }
+  }
+
+  auto cell = i::Handle<i::Cell>::cast(object);
+  cell->set_value(*val);
+  return true;
+}
+
 namespace {
 
 i::Compiler::ScriptDetails GetScriptDetails(
@@ -2417,44 +2490,12 @@ MaybeLocal<Module> ScriptCompiler::CompileModule(
   return ToApiHandle<Module>(i_isolate->factory()->NewModule(shared));
 }
 
+MaybeLocal<DynamicModule> ScriptCompiler::CreateDynamicModule(
+    Isolate* isolate) {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(isolate);
 
-class IsIdentifierHelper {
- public:
-  IsIdentifierHelper() : is_identifier_(false), first_char_(true) {}
-
-  bool Check(i::String* string) {
-    i::ConsString* cons_string = i::String::VisitFlat(this, string, 0);
-    if (cons_string == nullptr) return is_identifier_;
-    // We don't support cons strings here.
-    return false;
-  }
-  void VisitOneByteString(const uint8_t* chars, int length) {
-    for (int i = 0; i < length; ++i) {
-      if (first_char_) {
-        first_char_ = false;
-        is_identifier_ = unicode_cache_.IsIdentifierStart(chars[0]);
-      } else {
-        is_identifier_ &= unicode_cache_.IsIdentifierPart(chars[i]);
-      }
-    }
-  }
-  void VisitTwoByteString(const uint16_t* chars, int length) {
-    for (int i = 0; i < length; ++i) {
-      if (first_char_) {
-        first_char_ = false;
-        is_identifier_ = unicode_cache_.IsIdentifierStart(chars[0]);
-      } else {
-        is_identifier_ &= unicode_cache_.IsIdentifierPart(chars[i]);
-      }
-    }
-  }
-
- private:
-  bool is_identifier_;
-  bool first_char_;
-  i::UnicodeCache unicode_cache_;
-  DISALLOW_COPY_AND_ASSIGN(IsIdentifierHelper);
-};
+  return ToApiHandle<DynamicModule>(i_isolate->factory()->NewDynamicModule());
+}
 
 MaybeLocal<Function> ScriptCompiler::CompileFunctionInContext(
     Local<Context> v8_context, Source* source, size_t arguments_count,
@@ -8284,6 +8325,12 @@ void Isolate::SetAbortOnUncaughtExceptionCallback(
     AbortOnUncaughtExceptionCallback callback) {
   i::Isolate* isolate = reinterpret_cast<i::Isolate*>(this);
   isolate->SetAbortOnUncaughtExceptionCallback(callback);
+}
+
+void Isolate::SetHostExecuteDynamicModuleCallback(
+    HostExecuteDynamicModuleCallback callback) {
+  i::Isolate* isolate = reinterpret_cast<i::Isolate*>(this);
+  isolate->SetHostExecuteDynamicModuleCallback(callback);
 }
 
 void Isolate::SetHostImportModuleDynamicallyCallback(
