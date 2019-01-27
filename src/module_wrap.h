@@ -34,7 +34,6 @@ v8::Maybe<ModuleResolution> Resolve(Environment* env,
 
 class ModuleWrap : public BaseObject {
  public:
-  static const std::string EXTENSIONS[];
   static void Initialize(v8::Local<v8::Object> target,
                          v8::Local<v8::Value> unused,
                          v8::Local<v8::Context> context,
@@ -50,18 +49,23 @@ class ModuleWrap : public BaseObject {
   }
 
   inline uint32_t id() { return id_; }
+  
   static ModuleWrap* GetFromID(node::Environment*, uint32_t id);
 
   SET_MEMORY_INFO_NAME(ModuleWrap)
   SET_SELF_SIZE(ModuleWrap)
 
- private:
-  ModuleWrap(Environment* env,
+ protected:
+   ModuleWrap(Environment* env,
              v8::Local<v8::Object> object,
              v8::Local<v8::Module> module,
              v8::Local<v8::String> url);
   ~ModuleWrap();
+  Persistent<v8::Context> context_;
+  Persistent<v8::Module> module_;
+  bool linked_ = false;
 
+ private:
   static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Link(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Instantiate(const v8::FunctionCallbackInfo<v8::Value>& args);
@@ -83,13 +87,30 @@ class ModuleWrap : public BaseObject {
       v8::Local<v8::Module> referrer);
   static ModuleWrap* GetFromModule(node::Environment*, v8::Local<v8::Module>);
 
-  Persistent<v8::Module> module_;
   Persistent<v8::String> url_;
-  bool linked_ = false;
   std::unordered_map<std::string, Persistent<v8::Promise>> resolve_cache_;
-  Persistent<v8::Context> context_;
   uint32_t id_;
 };
+
+class DynamicModuleWrap : public ModuleWrap {
+ public:
+  static void SetExport(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+  DynamicModuleWrap(Environment* env,
+                    v8::Local<v8::Object> object,
+                    v8::Local<v8::Module> module,
+                    v8::Local<v8::String> url,
+                    v8::Local<v8::Function> dynamic_exec_callback);
+  ~DynamicModuleWrap();
+  
+  static void HostExecuteDynamicModuleCallback(
+      v8::Local<v8::Context> context, v8::Local<v8::DynamicModule> module);
+
+ private:
+  Persistent<v8::Function> dynamic_exec_callback_;
+};
+
 
 }  // namespace loader
 }  // namespace node

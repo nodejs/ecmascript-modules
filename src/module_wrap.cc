@@ -20,6 +20,7 @@ using node::url::URL;
 using node::url::URL_FLAGS_FAILED;
 using v8::Array;
 using v8::Context;
+using v8::DynamicModule;
 using v8::Function;
 using v8::FunctionCallbackInfo;
 using v8::FunctionTemplate;
@@ -101,11 +102,9 @@ void ModuleWrap::New(const FunctionCallbackInfo<Value>& args) {
 
   CHECK(args[1]->IsString());
   Local<String> url = args[1].As<String>();
-
   Local<Context> context;
   Local<Integer> line_offset;
   Local<Integer> column_offset;
-
   if (argc == 5) {
     // new ModuleWrap(source, url, context?, lineOffset, columnOffset)
     if (args[2]->IsUndefined()) {
@@ -230,7 +229,6 @@ void ModuleWrap::Link(const FunctionCallbackInfo<Value>& args) {
 
     promises->Set(mod_context, i, resolve_promise).FromJust();
   }
-
   args.GetReturnValue().Set(promises);
 }
 
@@ -416,6 +414,96 @@ MaybeLocal<Module> ModuleWrap::ResolveCallback(Local<Context> context,
   ModuleWrap* module;
   ASSIGN_OR_RETURN_UNWRAP(&module, module_object, MaybeLocal<Module>());
   return module->module_.Get(isolate);
+}
+
+DynamicModuleWrap::DynamicModuleWrap(Environment* env,
+                       Local<Object> object,
+                       Local<Module> module,
+                       Local<String> url,
+                       Local<Function> dynamic_exec_callback) :
+  ModuleWrap(env, object, module, url) {
+  dynamic_exec_callback_.Reset(env->isolate(), dynamic_exec_callback);
+  linked_ = true;
+}
+
+DynamicModuleWrap::~DynamicModuleWrap() {
+  dynamic_exec_callback_.Reset();
+}
+
+void DynamicModuleWrap::New(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  Isolate* isolate = env->isolate();
+
+  CHECK(args.IsConstructCall());
+  Local<Object> that = args.This();
+
+  const int argc = args.Length();
+  CHECK_EQ(argc, 2);
+
+  // Dynamic Module
+  // new ModuleWrap(url, (module) => {...})
+  CHECK(args[0]->IsString());
+  Local<String> url = args[0].As<String>();
+
+  CHECK(args[1]->IsFunction());
+  Local<Function> dynamic_exec_callback = args[1].As<Function>();
+
+  if (!that->Set(env->context(), env->url_string(), url).FromMaybe(false)) {
+    return;
+  }
+
+  Local<DynamicModule> module = ScriptCompiler::CreateDynamicModule(isolate).ToLocalChecked();
+
+  DynamicModuleWrap* obj = new DynamicModuleWrap(
+      env, that, module, url, dynamic_exec_callback);
+  obj->context_.Reset(isolate, env->context());
+
+  env->hash_to_module_map.emplace(module->GetIdentityHash(), obj);
+
+  args.GetReturnValue().Set(that);
+}
+
+void DynamicModuleWrap::SetExport(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  Isolate* isolate = env->isolate();
+
+  DynamicModuleWrap* obj;
+  ASSIGN_OR_RETURN_UNWRAP(&obj, args.This());
+
+  CHECK_EQ(args.Length(), 2);
+  CHECK(args[0]->IsString());
+  Local<String> name = args[0].As<String>();
+
+  Local<Value> value = args[1];
+
+  Local<Module> m = obj->module_.Get(isolate);
+  Local<DynamicModule> m_dyn = m.As<DynamicModule>();
+  m_dyn->SetExport(isolate, name, value);
+}
+
+void DynamicModuleWrap::HostExecuteDynamicModuleCallback(
+    Local<Context> context, Local<DynamicModule> module) {
+  Environment* env = Environment::GetCurrent(context);
+  Isolate* isolate = env->isolate();
+
+  DynamicModuleWrap* m = static_cast<DynamicModuleWrap*>(
+      env->hash_to_module_map.find(module->GetIdentityHash())->second);
+
+  Local<Object> object = m->object();
+  Local<Value> args[] = { object };
+  Local<Function> dynamic_exec_callback =
+      m->dynamic_exec_callback_.Get(isolate);
+  
+  TryCatchScope try_catch(env);
+  bool failed = 
+    dynamic_exec_callback->Call(context, Undefined(env->isolate()), 1, args)
+    .IsEmpty();
+  if (failed) {
+    CHECK(try_catch.HasCaught());
+    try_catch.ReThrow();
+    return;
+  }
+  CHECK(!try_catch.HasCaught());
 }
 
 namespace {
@@ -1016,6 +1104,29 @@ void ModuleWrap::Initialize(Local<Object> target,
   env->SetMethod(target,
                  "setInitializeImportMetaObjectCallback",
                  SetInitializeImportMetaObjectCallback);
+  
+  Local<FunctionTemplate> dynTpl =
+      env->NewFunctionTemplate(DynamicModuleWrap::New);
+  dynTpl->SetClassName(FIXED_ONE_BYTE_STRING(isolate, "DynamicModuleWrap"));
+  dynTpl->InstanceTemplate()->SetInternalFieldCount(1);
+  env->SetProtoMethod(dynTpl, "link", Link);
+  env->SetProtoMethod(dynTpl, "instantiate", Instantiate);
+  env->SetProtoMethod(dynTpl, "evaluate", Evaluate);
+  env->SetProtoMethod(dynTpl, "setExport", DynamicModuleWrap::SetExport);
+  env->SetProtoMethodNoSideEffect(dynTpl, "namespace",
+      Namespace);
+  env->SetProtoMethodNoSideEffect(dynTpl, "getStatus",
+      GetStatus);
+  env->SetProtoMethodNoSideEffect(dynTpl, "getError",
+      GetError);
+  env->SetProtoMethodNoSideEffect(dynTpl, "getStaticDependencySpecifiers",
+      GetStaticDependencySpecifiers);
+  target->Set(env->context(),
+      FIXED_ONE_BYTE_STRING(isolate, "DynamicModuleWrap"),
+      dynTpl->GetFunction(context).ToLocalChecked()).FromJust();
+
+  isolate->SetHostExecuteDynamicModuleCallback(
+      DynamicModuleWrap::HostExecuteDynamicModuleCallback);
 
 #define V(name)                                                                \
     target->Set(context,                                                       \
