@@ -798,7 +798,7 @@ Maybe<ModuleResolution> PackageResolve(Environment* env,
     }
     CHECK(false);
     // Cross-platform root check.
-  } while (pjson_url.path().length() != last_path.length());
+  } while (pjson_path.length() != last_path.length());
 
   std::string msg = "Cannot find package '" + pkg_name +
       "' imported from " + base.ToFilePath();

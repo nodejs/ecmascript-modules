@@ -3,4 +3,5 @@
 // test we can use commonjs require
 require('path');
 
-console.log('executed');
+exports.execTime = +Date.now();
+exports.name = 'value';

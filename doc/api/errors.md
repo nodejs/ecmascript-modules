@@ -1855,6 +1855,12 @@ An attempt was made to load a module with an unknown or unsupported format.
 An invalid or unknown process signal was passed to an API expecting a valid
 signal (such as [`subprocess.kill()`][]).
 
+<a id="ERR_UNSUPPORTED_FILE_EXTENSION"></a>
+### ERR_UNSUPPORTED_FILE_EXTENSION
+
+The given file extension is not of a supported format for loading through
+the Node.js ES module loader.
+
 <a id="ERR_V8BREAKITERATOR"></a>
 ### ERR_V8BREAKITERATOR
 
