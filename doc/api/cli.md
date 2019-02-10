@@ -485,6 +485,18 @@ added: v2.4.0
 
 Track heap object allocations for heap snapshots.
 
+### `-m`, `--type=type`
+
+When using `--experimental-modules`, this informs the module resolution type
+to interpret the top-level entry into Node.js.
+
+Works with stdin, `--eval`, `--print` as well as standard execution.
+
+Valid values are `"commonjs"` and `"module"`, where the default is to infer
+from the file extension and package type boundary.
+
+`-m` is an alias for `--type=module`.
+
 ### `--use-bundled-ca`, `--use-openssl-ca`
 <!-- YAML
 added: v6.11.0
