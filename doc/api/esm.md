@@ -158,8 +158,8 @@ The algorithm to load an ES module specifier is given through the
 module specifier relative to a parentURL, in addition to the unique module
 format for that resolved URL given by the **ESM_FORMAT** routine.
 
-The _"esm"_ format is returned for an ECMAScript Module, while the
-_"legacy"_ format is used to indicate loading through the legacy
+The _"module"_ format is returned for an ECMAScript Module, while the
+_"commonjs"_ format is used to indicate loading through the legacy
 CommonJS loader. Additional formats such as _"wasm"_ or _"addon"_ can be
 extended in future updates.
 
@@ -167,6 +167,12 @@ In the following algorithms, all subroutine errors are propogated as errors
 of these top-level routines.
 
 _isMain_ is **true** when resolving the Node.js application entry point.
+
+If the top-level `--type` is _"commonjs"_, then the ESM resolver is skipped
+entirely for the CommonJS loader.
+
+If the top-level `--type` is _"module"_, then the ESM resolver is used
+as described here, with the conditional `--type` check in **ESM_FORMAT**.
 
 **ESM_RESOLVE(_specifier_, _parentURL_, _isMain_)**
 > 1. Let _resolvedURL_ be **undefined**.
@@ -234,7 +240,7 @@ PACKAGE_MAIN_RESOLVE(_packageURL_, _pjson_)
 >       _pjson.main_.
 >    1. If the file at _resolvedMain_ exists, then
 >       1. Return _resolvedMain_.
-> 1. If _pjson.type_ is equal to _"esm"_, then
+> 1. If _pjson.type_ is equal to _"module"_, then
 >    1. Throw a _Module Not Found_ error.
 > 1. Let _legacyMainURL_ be the result applying the legacy
 >    **LOAD_AS_DIRECTORY** CommonJS resolver to _packageURL_, throwing a
@@ -245,18 +251,24 @@ PACKAGE_MAIN_RESOLVE(_packageURL_, _pjson_)
 
 **ESM_FORMAT(_url_, _isMain_)**
 > 1. Assert: _url_ corresponds to an existing file.
+> 1. If _isMain_ is **true** and the `--type` flag is _"module"_, then
+>    1. If _url_ ends with _".cjs"_, then
+>       1. Throw an _Invalid File Extension_ error.
+>    1. Return _"module"_.
 > 1. Let _pjson_ be the result of **READ_PACKAGE_BOUNDARY**(_url_).
 > 1. If _pjson_ is **null** and _isMain_ is **true**, then
->    1. Return _"legacy"_.
-> 1. If _pjson.type_ exists and is _"esm"_, then
+>    1. Return _"commonjs"_.
+> 1. If _pjson.type_ exists and is _"module"_, then
+>    1. If _url_ ends in _".cjs"_, then
+>       1. Return _"commonjs"_.
 >    1. If _url_ does not end in _".js"_ or _".mjs"_, then
 >       1. Throw an _Unsupported File Extension_ error.
->    1. Return _"esm"_.
+>    1. Return _"module"_.
 > 1. Otherwise,
 >    1. If _url_ ends in _".mjs"_, then
->       1. Return _"esm"_.
+>       1. Return _"module"_.
 >    1. Otherwise,
->       1. Return _"legacy"_.
+>       1. Return _"commonjs"_.
 
 READ_PACKAGE_BOUNDARY(_url_)
 > 1. Let _boundaryURL_ be _url_.
