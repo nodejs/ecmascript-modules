@@ -2196,6 +2196,27 @@ A non-specific HTTP/2 error has occurred.
 Used in the `repl` in case the old history file is used and an error occurred
 while trying to read and parse it.
 
+<a id="ERR_INVALID_REPL_TYPE"></a>
+### ERR_INVALID_REPL_TYPE
+
+> Stability: 1 - Experimental
+
+The `--type=...` flag is not compatible with the Node.js REPL.
+
+<a id="ERR_INVALID_TYPE_EXTENSION"></a>
+### ERR_INVALID_TYPE_EXTENSION
+
+> Stability: 1 - Experimental
+
+Attempted to execute a `.cjs` module with the `--type=module` flag.
+
+<a id="ERR_INVALID_TYPE_FLAG"></a>
+### ERR_INVALID_TYPE_FLAG
+
+> Stability: 1 - Experimental
+
+An invalid `--type=...` flag value was provided.
+
 <a id="ERR_MISSING_DYNAMIC_INSTANTIATE_HOOK"></a>
 #### ERR_MISSING_DYNAMIC_INSTANTIATE_HOOK
 
@@ -2225,7 +2246,6 @@ size.
 
 This `Error` is thrown when a read is attempted on a TTY `WriteStream`,
 such as `process.stdout.on('data')`.
-
 
 [`'uncaughtException'`]: process.html#process_event_uncaughtexception
 [`--force-fips`]: cli.html#cli_force_fips
