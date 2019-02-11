@@ -177,7 +177,6 @@ constexpr size_t kFsStatsBufferLength = kFsStatsFieldsNumber * 2;
   V(env_var_settings_string, "envVarSettings")                                 \
   V(errno_string, "errno")                                                     \
   V(error_string, "error")                                                     \
-  V(esm_string, "esm")                                                         \
   V(exchange_string, "exchange")                                               \
   V(exit_code_string, "exitCode")                                              \
   V(expire_string, "expire")                                                   \

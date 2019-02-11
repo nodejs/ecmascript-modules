@@ -28,10 +28,6 @@ struct ModuleResolution {
   bool legacy;
 };
 
-v8::Maybe<ModuleResolution> Resolve(Environment* env,
-                                    const std::string& specifier,
-                                    const url::URL& base);
-
 class ModuleWrap : public BaseObject {
  public:
   static const std::string EXTENSIONS[];
