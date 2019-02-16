@@ -264,6 +264,8 @@ PACKAGE_MAIN_RESOLVE(_packageURL_, _pjson_)
 >    1. If _url_ does not end in _".js"_ or _".mjs"_, then
 >       1. Throw an _Unsupported File Extension_ error.
 >    1. Return _"module"_.
+> 1. Otherwise,
+>   1. Return _"commonjs"_.
 
 READ_PACKAGE_BOUNDARY(_url_)
 > 1. Let _boundaryURL_ be _url_.
