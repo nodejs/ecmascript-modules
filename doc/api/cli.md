@@ -497,7 +497,10 @@ Track heap object allocations for heap snapshots.
 When using `--experimental-modules`, this informs the module resolution type
 to interpret the top-level entry into Node.js.
 
-Works with stdin, `--eval`, `--print` as well as standard execution.
+Works with stdin, `--eval`, `--print` as well as standard execution
+when envoking `node` explicitly.
+Does not work reliably when running via shebang (`#!/usr/bin/env node`)
+since arguments inside of the shebang aren't well supported across platforms.
 
 Valid values are `"commonjs"` and `"module"`, where the default is to infer
 from the file extension and package type boundary.
