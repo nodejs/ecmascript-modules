@@ -296,6 +296,7 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             "top-level module type name",
             &EnvironmentOptions::module_type,
             kAllowedInEnvironment);
+  AddAlias("-m", { "--type", "module" });
 
   AddOption("--check",
             "syntax check script without executing",
