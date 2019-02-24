@@ -2218,7 +2218,18 @@ The `--type=...` flag is not compatible with the Node.js REPL.
 
 > Stability: 1 - Experimental
 
-Attempted to execute a `.cjs` file with the `--type=module` flag, or an `.mjs` file with the `--type=commonjs` flag.
+Attempted to execute a `.cjs` file with the `--type=module` flag,
+or an `.mjs` file with the `--type=commonjs` flag.
+
+<a id="ERR_INVALID_TYPE_IN_PACKAGE_SCOPE"></a>
+### ERR_INVALID_TYPE_IN_PACKAGE_SCOPE
+
+> Stability: 1 - Experimental
+
+Attempted to execute a `.js` file with the `--type=commonjs` flag where the
+nearest `package.json` contains `"type": "module"`; or a `.js` file with the
+`--type=module` flag where the nearest `package.json` either lacks a `"type"`
+field or contains `"type": "commonjs"`.
 
 <a id="ERR_INVALID_TYPE_FLAG"></a>
 ### ERR_INVALID_TYPE_FLAG
