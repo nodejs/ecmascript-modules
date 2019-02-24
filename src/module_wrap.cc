@@ -718,8 +718,7 @@ Maybe<ModuleResolution> FinalizeResolution(Environment* env,
 
 Maybe<ModuleResolution> FinalizeResolutionMain(Environment* env,
                                                const URL& resolved,
-                                               const URL& base,
-                                               bool esm_flag) {
+                                               const URL& base) {
   const std::string& path = resolved.ToFilePath();
 
   if (CheckDescriptorAtPath(path) != FILE) {
@@ -727,10 +726,6 @@ Maybe<ModuleResolution> FinalizeResolutionMain(Environment* env,
         "' imported from " + base.ToFilePath();
     node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
     return Nothing<ModuleResolution>();
-  }
-
-  if (esm_flag) {
-    return Just(ModuleResolution { resolved, false });
   }
 
   Maybe<const PackageConfig*> pcfg =
@@ -838,8 +833,7 @@ Maybe<ModuleResolution> PackageResolve(Environment* env,
 Maybe<ModuleResolution> Resolve(Environment* env,
                                 const std::string& specifier,
                                 const URL& base,
-                                bool is_main,
-                                bool esm_flag) {
+                                bool is_main) {
   // Order swapped from spec for minor perf gain.
   // Ok since relative URLs cannot parse as URLs.
   URL resolved;
@@ -854,7 +848,7 @@ Maybe<ModuleResolution> Resolve(Environment* env,
     }
   }
   if (is_main)
-    return FinalizeResolutionMain(env, resolved, base, esm_flag);
+    return FinalizeResolutionMain(env, resolved, base);
   else
     return FinalizeResolution(env, resolved, base, true);
 }
@@ -862,8 +856,8 @@ Maybe<ModuleResolution> Resolve(Environment* env,
 void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  // module.resolve(specifier, url, is_main, esm_flag)
-  CHECK_EQ(args.Length(), 4);
+  // module.resolve(specifier, url, is_main)
+  CHECK_EQ(args.Length(), 3);
 
   CHECK(args[0]->IsString());
   Utf8Value specifier_utf8(env->isolate(), args[0]);
@@ -875,8 +869,6 @@ void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
 
   CHECK(args[2]->IsBoolean());
 
-  CHECK(args[3]->IsBoolean());
-
   if (url.flags() & URL_FLAGS_FAILED) {
     return node::THROW_ERR_INVALID_ARG_TYPE(
         env, "second argument is not a URL string");
@@ -887,8 +879,7 @@ void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
       node::loader::Resolve(env,
                             specifier_std,
                             url,
-                            args[2]->IsTrue(),
-                            args[3]->IsTrue());
+                            args[2]->IsTrue());
   if (result.IsNothing()) {
     CHECK(try_catch.HasCaught());
     try_catch.ReThrow();
