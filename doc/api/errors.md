@@ -2218,7 +2218,7 @@ The `--type=...` flag is not compatible with the Node.js REPL.
 
 > Stability: 1 - Experimental
 
-Attempted to execute a `.cjs` module with the `--type=module` flag.
+Attempted to execute a `.cjs` file with the `--type=module` flag, or an `.mjs` file with the `--type=commonjs` flag.
 
 <a id="ERR_INVALID_TYPE_FLAG"></a>
 ### ERR_INVALID_TYPE_FLAG
