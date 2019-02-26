@@ -613,30 +613,6 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
   return Just(&entry.first->second);
 }
 
-Maybe<const PackageConfig*> GetPackageBoundaryConfig(Environment* env,
-                                                     const URL& search,
-                                                     const URL& base) {
-  URL pjson_url("package.json", &search);
-  while (true) {
-    Maybe<const PackageConfig*> pkg_cfg =
-        GetPackageConfig(env, pjson_url.ToFilePath(), base);
-    if (pkg_cfg.IsNothing()) return pkg_cfg;
-    if (pkg_cfg.FromJust()->exists == Exists::Yes) return pkg_cfg;
-
-    URL last_pjson_url = pjson_url;
-    pjson_url = URL("../package.json", pjson_url);
-
-    // Terminates at root where ../package.json equals ../../package.json
-    // (can't just check "/package.json" for Windows support).
-    if (pjson_url.path() == last_pjson_url.path()) {
-      auto entry = env->package_json_cache.emplace(pjson_url.ToFilePath(),
-          PackageConfig { Exists::No, IsValid::Yes, HasMain::No, "",
-                          IsESM::No });
-      return Just(&entry.first->second);
-    }
-  }
-}
-
 /*
  * Legacy CommonJS main resolution:
  * 1. let M = pkg_url + (json main field)
@@ -691,7 +667,7 @@ Maybe<URL> LegacyMainResolve(const URL& pjson_url,
   return Nothing<URL>();
 }
 
-Maybe<ModuleResolution> FinalizeResolution(Environment* env,
+Maybe<URL> FinalizeResolution(Environment* env,
                                            const URL& resolved,
                                            const URL& base,
                                            bool check_exists) {
@@ -701,46 +677,13 @@ Maybe<ModuleResolution> FinalizeResolution(Environment* env,
     std::string msg = "Cannot find module '" + path +
         "' imported from " + base.ToFilePath();
     node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
-    return Nothing<ModuleResolution>();
+    return Nothing<URL>();
   }
 
-  Maybe<const PackageConfig*> pcfg =
-      GetPackageBoundaryConfig(env, resolved, base);
-  if (pcfg.IsNothing()) return Nothing<ModuleResolution>();
-
-  if (pcfg.FromJust()->exists == Exists::No) {
-    return Just(ModuleResolution { resolved, true });
-  }
-
-  return Just(ModuleResolution {
-      resolved, pcfg.FromJust()->esm == IsESM::No });
+  return Just(resolved);
 }
 
-Maybe<ModuleResolution> FinalizeResolutionMain(Environment* env,
-                                               const URL& resolved,
-                                               const URL& base) {
-  const std::string& path = resolved.ToFilePath();
-
-  if (CheckDescriptorAtPath(path) != FILE) {
-    std::string msg = "Cannot find module '" + path +
-        "' imported from " + base.ToFilePath();
-    node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
-    return Nothing<ModuleResolution>();
-  }
-
-  Maybe<const PackageConfig*> pcfg =
-      GetPackageBoundaryConfig(env, resolved, base);
-  if (pcfg.IsNothing()) return Nothing<ModuleResolution>();
-
-  if (pcfg.FromJust()->exists == Exists::No) {
-    return Just(ModuleResolution { resolved, true });
-  }
-
-  return Just(ModuleResolution {
-      resolved, pcfg.FromJust()->esm == IsESM::No });
-}
-
-Maybe<ModuleResolution> PackageMainResolve(Environment* env,
+Maybe<URL> PackageMainResolve(Environment* env,
                                            const URL& pjson_url,
                                            const PackageConfig& pcfg,
                                            const URL& base) {
@@ -750,7 +693,7 @@ Maybe<ModuleResolution> PackageMainResolve(Environment* env,
         URL(".", pjson_url).ToFilePath() + "' imported from " +
         base.ToFilePath();
     node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
-    return Nothing<ModuleResolution>();
+    return Nothing<URL>();
   }
   if (pcfg.has_main == HasMain::Yes &&
       pcfg.main.substr(pcfg.main.length() - 4, 4) == ".mjs") {
@@ -764,12 +707,12 @@ Maybe<ModuleResolution> PackageMainResolve(Environment* env,
   Maybe<URL> resolved = LegacyMainResolve(pjson_url, pcfg);
   // Legacy main resolution error
   if (resolved.IsNothing()) {
-    return Nothing<ModuleResolution>();
+    return Nothing<URL>();
   }
-  return FinalizeResolution(env, resolved.FromJust(), base, false);
+  return resolved;
 }
 
-Maybe<ModuleResolution> PackageResolve(Environment* env,
+Maybe<URL> PackageResolve(Environment* env,
                           const std::string& specifier,
                           const URL& base) {
   size_t sep_index = specifier.find('/');
@@ -778,7 +721,7 @@ Maybe<ModuleResolution> PackageResolve(Environment* env,
     std::string msg = "Invalid package name '" + specifier +
       "' imported from " + base.ToFilePath();
     node::THROW_ERR_INVALID_MODULE_SPECIFIER(env, msg.c_str());
-    return Nothing<ModuleResolution>();
+    return Nothing<URL>();
   }
   bool scope = false;
   if (specifier[0] == '@') {
@@ -812,7 +755,7 @@ Maybe<ModuleResolution> PackageResolve(Environment* env,
     // Package match.
     Maybe<const PackageConfig*> pcfg = GetPackageConfig(env, pjson_path, base);
     // Invalid package configuration error.
-    if (pcfg.IsNothing()) return Nothing<ModuleResolution>();
+    if (pcfg.IsNothing()) return Nothing<URL>();
     if (!pkg_subpath.length()) {
       return PackageMainResolve(env, pjson_url, *pcfg.FromJust(), base);
     } else {
@@ -825,15 +768,14 @@ Maybe<ModuleResolution> PackageResolve(Environment* env,
   std::string msg = "Cannot find package '" + pkg_name +
       "' imported from " + base.ToFilePath();
   node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
-  return Nothing<ModuleResolution>();
+  return Nothing<URL>();
 }
 
 }  // anonymous namespace
 
-Maybe<ModuleResolution> Resolve(Environment* env,
+Maybe<URL> Resolve(Environment* env,
                                 const std::string& specifier,
-                                const URL& base,
-                                bool is_main) {
+                                const URL& base) {
   // Order swapped from spec for minor perf gain.
   // Ok since relative URLs cannot parse as URLs.
   URL resolved;
@@ -847,17 +789,14 @@ Maybe<ModuleResolution> Resolve(Environment* env,
       return PackageResolve(env, specifier, base);
     }
   }
-  if (is_main)
-    return FinalizeResolutionMain(env, resolved, base);
-  else
-    return FinalizeResolution(env, resolved, base, true);
+  return FinalizeResolution(env, resolved, base, true);
 }
 
 void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  // module.resolve(specifier, url, is_main)
-  CHECK_EQ(args.Length(), 3);
+  // module.resolve(specifier, url)
+  CHECK_EQ(args.Length(), 2);
 
   CHECK(args[0]->IsString());
   Utf8Value specifier_utf8(env->isolate(), args[0]);
@@ -867,19 +806,16 @@ void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   Utf8Value url_utf8(env->isolate(), args[1]);
   URL url(*url_utf8, url_utf8.length());
 
-  CHECK(args[2]->IsBoolean());
-
   if (url.flags() & URL_FLAGS_FAILED) {
     return node::THROW_ERR_INVALID_ARG_TYPE(
         env, "second argument is not a URL string");
   }
 
   TryCatchScope try_catch(env);
-  Maybe<ModuleResolution> result =
+  Maybe<URL> result =
       node::loader::Resolve(env,
                             specifier_std,
-                            url,
-                            args[2]->IsTrue());
+                            url);
   if (result.IsNothing()) {
     CHECK(try_catch.HasCaught());
     try_catch.ReThrow();
@@ -887,24 +823,12 @@ void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   }
   CHECK(!try_catch.HasCaught());
 
-  ModuleResolution resolution = result.FromJust();
-  CHECK(!(resolution.url.flags() & URL_FLAGS_FAILED));
+  URL resolution = result.FromJust();
+  CHECK(!(resolution.flags() & URL_FLAGS_FAILED));
 
-  Local<Object> resolved = Object::New(env->isolate());
+  Local<Value> resolved = resolution.ToObject(env).ToLocalChecked();
 
-  resolved->DefineOwnProperty(
-      env->context(),
-      env->url_string(),
-      resolution.url.ToObject(env).ToLocalChecked(),
-      v8::ReadOnly).FromJust();
-
-  resolved->DefineOwnProperty(
-      env->context(),
-      env->legacy_string(),
-      v8::Boolean::New(env->isolate(), resolution.legacy),
-      v8::ReadOnly).FromJust();
-
-    args.GetReturnValue().Set(resolved);
+  args.GetReturnValue().Set(resolved);
 }
 
 static MaybeLocal<Promise> ImportModuleDynamically(

@@ -1270,6 +1270,11 @@ An invalid or unexpected value was passed in an options object.
 
 An invalid or unknown file encoding was passed.
 
+<a id="ERR_INVALID_PACKAGE_CONFIG"></a>
+### ERR_INVALID_PACKAGE_CONFIG
+
+An invalid `package.json` file was found which failed parsing.
+
 <a id="ERR_INVALID_PERFORMANCE_MARK"></a>
 ### ERR_INVALID_PERFORMANCE_MARK
 

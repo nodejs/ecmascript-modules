@@ -24,11 +24,6 @@ enum HostDefinedOptions : int {
   kLength = 10,
 };
 
-struct ModuleResolution {
-  url::URL url;
-  bool legacy;
-};
-
 class ModuleWrap : public BaseObject {
  public:
   static const std::string EXTENSIONS[];
