@@ -235,25 +235,30 @@ PACKAGE_RESOLVE(_packageSpecifier_, _parentURL_)
 PACKAGE_MAIN_RESOLVE(_packageURL_, _pjson_)
 > 1. If _pjson_ is **null**, then
 >    1. Throw a _Module Not Found_ error.
-> 1. If _pjson.main_ is a String, then
->    1. Let _resolvedMain_ be the concatenation of _packageURL_, "/", and
->       _pjson.main_.
->    1. If the file at _resolvedMain_ exists, then
->       1. Return _resolvedMain_.
-> 1. If _pjson.type_ is equal to _"module"_, then
->    1. Throw a _Module Not Found_ error.
+> 1. Let _main_ be **undefined**.
+> 1. If _pjson.exports_ is a String, then
+>    1. Set _main_ to _pjson.exports_.
+>    1. If _main_ ends in _".js"_ and _pjson.type_ is not equal to _"module"_,
+>       or _main_ ends in _".cjs"_, then
+>       1. Throw a _Format Mismatch_ error.
+>    1. Let _resolvedMain_ be the resolution of _main_ to _packageURL_.
+>    1. If the file at _resolvedMain_ does not exist, then
+>       1. Throw a _Module Not Found_ error.
+>    1. Return _resolvedMain_.
 > 1. Let _legacyMainURL_ be the result applying the legacy
 >    **LOAD_AS_DIRECTORY** CommonJS resolver to _packageURL_, throwing a
 >    _Module Not Found_ error for no resolution.
-> 1. If _legacyMainURL_ does not end in _".js"_ then,
->    1. Throw an _Unsupported File Extension_ error.
+> 1. If _pjson.type_ is _"module"_ and _legacyMainURL_ ends in _".js"_, then
+>    1. Throw a _Format Mismatch_ error.
+> 1. If _legacyMainURL_ ends in _".mjs"_, then
+>    1. Throw a _Format Mismatch_ error.
 > 1. Return _legacyMainURL_.
 
 **ESM_FORMAT(_url_, _isMain_)**
 > 1. Assert: _url_ corresponds to an existing file.
 > 1. If _isMain_ is **true** and the `--type` flag is _"module"_, then
 >    1. If _url_ ends with _".cjs"_, then
->       1. Throw an _Invalid File Extension_ error.
+>       1. Throw an _Format Mismatch_ error.
 >    1. Return _"module"_.
 > 1. Let _pjson_ be the result of **READ_PACKAGE_BOUNDARY**(_url_).
 > 1. If _pjson_ is **null** and _isMain_ is **true**, then
@@ -267,8 +272,9 @@ PACKAGE_MAIN_RESOLVE(_packageURL_, _pjson_)
 > 1. Otherwise,
 >    1. If _url_ ends in _".mjs"_, then
 >       1. Return _"module"_.
->    1. Otherwise,
->       1. Return _"commonjs"_.
+>    1. If _url_ does not end in _".js"_, then
+>       1. Throw an _Unsupported File Extension_ error.
+>    1. Return _"commonjs"_.
 
 READ_PACKAGE_BOUNDARY(_url_)
 > 1. Let _boundaryURL_ be _url_.
