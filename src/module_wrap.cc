@@ -524,6 +524,7 @@ Maybe<std::string> ReadIfFile(const std::string& path) {
 using Exists = PackageConfig::Exists;
 using IsValid = PackageConfig::IsValid;
 using HasMain = PackageConfig::HasMain;
+using HasExports = PackageConfig::HasExports;
 using IsESM = PackageConfig::IsESM;
 
 Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
@@ -538,8 +539,8 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
 
   if (source.IsNothing()) {
     auto entry = env->package_json_cache.emplace(path,
-        PackageConfig { Exists::No, IsValid::Yes, HasMain::No, "",
-                        IsESM::No });
+        PackageConfig { Exists::No, IsValid::Yes, HasMain::No, HasExports::No,
+                        "", IsESM::No });
     return Just(&entry.first->second);
   }
 
@@ -565,8 +566,8 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
 
   if (!parsed) {
     (void)env->package_json_cache.emplace(path,
-        PackageConfig { Exists::Yes, IsValid::No, HasMain::No, "",
-                        IsESM::No });
+        PackageConfig { Exists::Yes, IsValid::No, HasMain::No, HasExports::No,
+                        "", IsESM::No });
     std::string msg = "Invalid JSON in '" + path +
         "' imported from " + base.ToFilePath();
     node::THROW_ERR_INVALID_PACKAGE_CONFIG(env, msg.c_str());
@@ -575,8 +576,17 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
 
   Local<Value> pkg_main;
   HasMain::Bool has_main = HasMain::No;
+  HasExports::Bool has_exports = HasExports::No;
   std::string main_std;
-  if (pkg_json->Get(env->context(), env->main_string()).ToLocal(&pkg_main)) {
+  if (pkg_json->Get(env->context(), env->exports_string()).ToLocal(&pkg_main)) {
+    if (pkg_main->IsString()) {
+      has_main = HasMain::Yes;
+      has_exports = HasExports::Yes;
+    }
+    Utf8Value main_utf8(isolate, pkg_main);
+    main_std.assign(std::string(*main_utf8, main_utf8.length()));
+  } else if (pkg_json->Get(env->context(),
+      env->main_string()).ToLocal(&pkg_main)) {
     if (pkg_main->IsString()) {
       has_main = HasMain::Yes;
     }
@@ -592,24 +602,9 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
     }
   }
 
-  Local<Value> exports_v;
-  if (pkg_json->Get(env->context(),
-      env->exports_string()).ToLocal(&exports_v) &&
-      (exports_v->IsObject() || exports_v->IsString() ||
-      exports_v->IsBoolean())) {
-    Persistent<Value> exports;
-    // esm = IsESM::Yes;
-    exports.Reset(env->isolate(), exports_v);
-
-    auto entry = env->package_json_cache.emplace(path,
-        PackageConfig { Exists::Yes, IsValid::Yes, has_main, main_std,
-                        esm });
-    return Just(&entry.first->second);
-  }
-
   auto entry = env->package_json_cache.emplace(path,
-      PackageConfig { Exists::Yes, IsValid::Yes, has_main, main_std,
-                      esm });
+      PackageConfig { Exists::Yes, IsValid::Yes, has_main, has_exports,
+                      main_std, esm });
   return Just(&entry.first->second);
 }
 
@@ -630,8 +625,8 @@ Maybe<const PackageConfig*> GetPackageBoundaryConfig(Environment* env,
     // (can't just check "/package.json" for Windows support).
     if (pjson_url.path() == last_pjson_url.path()) {
       auto entry = env->package_json_cache.emplace(pjson_url.ToFilePath(),
-          PackageConfig { Exists::No, IsValid::Yes, HasMain::No, "",
-                          IsESM::No });
+          PackageConfig { Exists::No, IsValid::Yes, HasMain::No,
+                          HasExports::No, "", IsESM::No });
       return Just(&entry.first->second);
     }
   }
@@ -757,15 +752,20 @@ Maybe<ModuleResolution> PackageMainResolve(Environment* env,
     node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
     return Nothing<ModuleResolution>();
   }
-  if (pcfg.has_main == HasMain::Yes &&
-      pcfg.main.substr(pcfg.main.length() - 4, 4) == ".mjs") {
+  if (pcfg.has_exports == HasExports::Yes) {
+    const size_t main_len = pcfg.main.length();
+    if (main_len > 4 && pcfg.main.substr(main_len - 4, 4) == ".cjs" ||
+        (pcfg.esm == IsESM::No &&
+        main_len > 3 && pcfg.main.substr(main_len - 3, 3) == ".js")) {
+      std::string msg = "Cannot load exports entry point '" +
+        pcfg.main + "' in " + URL(".", pjson_url).ToFilePath() +
+        " imported from " + base.ToFilePath() +
+        " as it would be loaded as CommonJS.";
+      node::THROW_ERR_FORMAT_MISMATCH(env, msg.c_str());
+      return Nothing<ModuleResolution>();
+    }
     return FinalizeResolution(env, URL(pcfg.main, pjson_url), base, true);
   }
-  if (pcfg.esm == IsESM::Yes &&
-      pcfg.main.substr(pcfg.main.length() - 3, 3) == ".js") {
-    return FinalizeResolution(env, URL(pcfg.main, pjson_url), base, true);
-  }
-
   Maybe<URL> resolved = LegacyMainResolve(pjson_url, pcfg);
   // Legacy main resolution error
   if (resolved.IsNothing()) {

@@ -62,6 +62,7 @@ void FatalException(const v8::FunctionCallbackInfo<v8::Value>& args);
   V(ERR_STRING_TOO_LONG, Error)                                              \
   V(ERR_TLS_INVALID_PROTOCOL_METHOD, TypeError)                              \
   V(ERR_TRANSFERRING_EXTERNALIZED_SHAREDARRAYBUFFER, TypeError)              \
+  V(ERR_FORMAT_MISMATCH, Error)                                              \
 
 #define V(code, type)                                                         \
   inline v8::Local<v8::Value> code(v8::Isolate* isolate,                      \

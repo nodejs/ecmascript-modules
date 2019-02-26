@@ -82,12 +82,16 @@ struct PackageConfig {
   struct HasMain {
     enum Bool { No, Yes };
   };
+  struct HasExports {
+    enum Bool { No, Yes };
+  };
   struct IsESM {
     enum Bool { No, Yes };
   };
   const Exists::Bool exists;
   const IsValid::Bool is_valid;
   const HasMain::Bool has_main;
+  const HasExports::Bool has_exports;
   const std::string main;
   const IsESM::Bool esm;
 };
