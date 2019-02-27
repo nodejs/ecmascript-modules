@@ -19,6 +19,11 @@ expect('', packageTypeModuleMain, 'package-type-module');
 expect('', packageTypeCommonJsMain, 'package-type-commonjs');
 expect('', packageWithoutTypeMain, 'package-without-type');
 
+// Check that running with --type and no package.json "type" works
+expect('--type=commonjs', packageWithoutTypeMain, 'package-without-type');
+expect('--type=module', packageWithoutTypeMain, 'package-without-type');
+expect('-m', packageWithoutTypeMain, 'package-without-type');
+
 // Check that running with conflicting --type flags throws errors
 expect('--type=commonjs', mjsFile, 'ERR_REQUIRE_ESM', true);
 expect('--type=module', cjsFile, 'ERR_TYPE_MISMATCH', true);
@@ -28,10 +33,6 @@ expect('--type=commonjs', packageTypeModuleMain,
 expect('--type=module', packageTypeCommonJsMain,
        'ERR_TYPE_MISMATCH', true);
 expect('-m', packageTypeCommonJsMain,
-       'ERR_TYPE_MISMATCH', true);
-expect('--type=module', packageWithoutTypeMain,
-       'ERR_TYPE_MISMATCH', true);
-expect('-m', packageWithoutTypeMain,
        'ERR_TYPE_MISMATCH', true);
 
 function expect(opt = '', inputFile, want, wantsError = false) {
