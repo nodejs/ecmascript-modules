@@ -2218,22 +2218,16 @@ while trying to read and parse it.
 
 The `--type=...` flag is not compatible with the Node.js REPL.
 
-<a id="ERR_INVALID_TYPE_EXTENSION"></a>
-### ERR_INVALID_TYPE_EXTENSION
+<a id="ERR_TYPE_MISMATCH"></a>
+### ERR_TYPE_MISMATCH
 
 > Stability: 1 - Experimental
 
-Attempted to execute a `.cjs` file with the `--type=module` flag,
-or an `.mjs` file with the `--type=commonjs` flag.
-
-<a id="ERR_INVALID_TYPE_IN_PACKAGE_SCOPE"></a>
-### ERR_INVALID_TYPE_IN_PACKAGE_SCOPE
-
-> Stability: 1 - Experimental
-
-Attempted to execute a `.js` file with the `--type=commonjs` flag where the
-nearest `package.json` contains `"type": "module"`; or a `.js` file with the
-`--type=module` flag where the nearest `package.json` either lacks a `"type"`
+The `--type=commonjs` flag was used to attempt to execute an `.mjs` file or
+a `.js` file where the nearest parent `package.json` contains
+`"type": "module"`; or
+the `--type=module` flag was used to attempt to execute a `.cjs` file or
+a `.js` file where the nearest parent `package.json` either lacks a `"type"`
 field or contains `"type": "commonjs"`.
 
 <a id="ERR_INVALID_TYPE_FLAG"></a>
