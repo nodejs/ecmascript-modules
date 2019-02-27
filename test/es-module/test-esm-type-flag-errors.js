@@ -20,19 +20,19 @@ expect('', packageTypeCommonJsMain, 'package-type-commonjs');
 expect('', packageWithoutTypeMain, 'package-without-type');
 
 // Check that running with conflicting --type flags throws errors
-expect('--type=commonjs', mjsFile, 'ERR_INVALID_TYPE_EXTENSION', true);
-expect('--type=module', cjsFile, 'ERR_INVALID_TYPE_EXTENSION', true);
-expect('-m', cjsFile, 'ERR_INVALID_TYPE_EXTENSION', true);
+expect('--type=commonjs', mjsFile, 'ERR_TYPE_MISMATCH', true);
+expect('--type=module', cjsFile, 'ERR_TYPE_MISMATCH', true);
+expect('-m', cjsFile, 'ERR_TYPE_MISMATCH', true);
 expect('--type=commonjs', packageTypeModuleMain,
-       'ERR_INVALID_TYPE_IN_PACKAGE_SCOPE', true);
+       'ERR_TYPE_MISMATCH', true);
 expect('--type=module', packageTypeCommonJsMain,
-       'ERR_INVALID_TYPE_IN_PACKAGE_SCOPE', true);
+       'ERR_TYPE_MISMATCH', true);
 expect('-m', packageTypeCommonJsMain,
-       'ERR_INVALID_TYPE_IN_PACKAGE_SCOPE', true);
+       'ERR_TYPE_MISMATCH', true);
 expect('--type=module', packageWithoutTypeMain,
-       'ERR_INVALID_TYPE_IN_PACKAGE_SCOPE', true);
+       'ERR_TYPE_MISMATCH', true);
 expect('-m', packageWithoutTypeMain,
-       'ERR_INVALID_TYPE_IN_PACKAGE_SCOPE', true);
+       'ERR_TYPE_MISMATCH', true);
 
 function expect(opt = '', inputFile, want, wantsError = false) {
   // TODO: Remove when --experimental-modules is unflagged
