@@ -20,11 +20,11 @@ expect('', packageTypeCommonJsMain, 'package-type-commonjs');
 expect('', packageWithoutTypeMain, 'package-without-type');
 
 // Check that running with conflicting --type flags throws errors
-expect('--type=commonjs', mjsFile, 'ERR_TYPE_MISMATCH', true);
+expect('--type=commonjs', mjsFile, 'ERR_REQUIRE_ESM', true);
 expect('--type=module', cjsFile, 'ERR_TYPE_MISMATCH', true);
 expect('-m', cjsFile, 'ERR_TYPE_MISMATCH', true);
 expect('--type=commonjs', packageTypeModuleMain,
-       'ERR_TYPE_MISMATCH', true);
+       'SyntaxError', true);
 expect('--type=module', packageTypeCommonJsMain,
        'ERR_TYPE_MISMATCH', true);
 expect('-m', packageTypeCommonJsMain,
