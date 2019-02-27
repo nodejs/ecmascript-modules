@@ -254,22 +254,25 @@ PACKAGE_MAIN_RESOLVE(_packageURL_, _pjson_)
 > 1. Assert: _url_ corresponds to an existing file.
 > 1. If _isMain_ is **true** and the `--type` flag is _"module"_, then
 >    1. If _url_ ends with _".cjs"_, then
->       1. Throw a _Format Mismatch_ error.
+>       1. Throw a _Type Mismatch_ error.
 >    1. Return _"module"_.
 > 1. Let _pjson_ be the result of **READ_PACKAGE_BOUNDARY**(_url_).
 > 1. If _pjson_ is **null** and _isMain_ is **true**, then
+>    1. If _url_ ends in _".mjs"_, then
+>       1. Return _"module"_.
 >    1. Return _"commonjs"_.
 > 1. If _pjson.type_ exists and is _"module"_, then
 >    1. If _url_ ends in _".cjs"_, then
->       1. Throw a _Format Mismatch_ error.
+>       1. Throw a _Type Mismatch_ error.
 >    1. If _url_ does not end in _".js"_ or _".mjs"_, then
 >       1. Throw an _Unsupported File Extension_ error.
 >    1. Return _"module"_.
 > 1. Otherwise,
 >    1. If _url_ ends in _".mjs"_, then
 >       1. Return _"module"_.
->    1. Otherwise,
->       1. Return _"commonjs"_.
+>    1. If _url_ does not end in _".js"_, then
+>       1. Throw an _Unsupported File Extension_ error.
+>    1. Return _"commonjs"_.
 
 READ_PACKAGE_BOUNDARY(_url_)
 > 1. Let _boundaryURL_ be _url_.
