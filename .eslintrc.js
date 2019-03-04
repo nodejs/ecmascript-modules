@@ -41,6 +41,7 @@ module.exports = {
         'test/es-module/test-esm-type-flag.js',
         'test/es-module/test-esm-type-flag-alias.js',
         '*.mjs',
+        'test/es-module/test-esm-example-loader.js',
       ],
       parserOptions: { sourceType: 'module' },
     },
