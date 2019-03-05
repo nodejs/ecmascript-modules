@@ -513,13 +513,13 @@ Track heap object allocations for heap snapshots.
 
 ### `-m`, `--type=type`
 
-When using `--experimental-modules`, this informs the module resolution type
-to interpret the top-level entry into Node.js.
+Used with `--experimental-modules`, this configures Node.js to interpret the
+initial entry point as CommonJS or as an ES module.
 
-Works with stdin, `--eval`, `--print` as well as standard execution.
+Valid values are `"commonjs"` and `"module"`. The default is to infer from
+the file extension and the `"type"` field in the nearest parent `package.json`.
 
-Valid values are `"commonjs"` and `"module"`, where the default is to infer
-from the file extension and package type boundary.
+Works for executing a file as well as `--eval`, `--print`, `STDIN`.
 
 `-m` is an alias for `--type=module`.
 
