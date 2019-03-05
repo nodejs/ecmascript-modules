@@ -8,25 +8,117 @@
 <!--name=esm-->
 
 Node.js contains support for ES Modules based upon the
-[Node.js EP for ES Modules][] and the [ESM Minimal Kernel][].
+[Node.js EP for ES Modules][] and the [ecmascript-modules implementation][].
 
-The minimal feature set is designed to be compatible with all potential
-future implementations. Expect major changes in the implementation including
-interoperability support, specifier resolution, and default behavior.
+Expect major changes in the implementation including interoperability support,
+specifier resolution, and default behavior.
 
 ## Enabling
 
 <!-- type=misc -->
 
 The `--experimental-modules` flag can be used to enable features for loading
-ESM modules.
+ECMAScript modules.
 
-Once this has been set, files ending with `.mjs` will be able to be loaded
-as ES Modules.
+Once this has been set, there are a few different ways to run a file as an ES module:
+
+### <code>.mjs</code> extension
+
+Files ending with `.mjs` will be loaded as ES modules.
 
 ```sh
 node --experimental-modules my-app.mjs
 ```
+
+### <code>--type=module</code> / <code>-m</code> flag
+
+Files ending with `.js` or `.mjs`, or lacking any extension,
+will be loaded as ES modules when the `--type=module` flag is set.
+This flag also has a shorthand alias `-m`.
+
+```sh
+node --experimental-modules --type=module my-app.js
+# or
+node --experimental-modules -m my-app.js
+```
+
+For completeness there is also `--type=commonjs`, for explicitly running a
+`.js` file as CommonJS.
+This is the default behavior if `--type` or `-m` is unspecified.
+
+The `--type=module` or `-m` flags can also be used to tell Node.js to treat as an ES module input sent in via `--eval` or `--print` (or `-e` or `-p`) or piped to Node.js via `STDIN`.
+
+```sh
+node --experimental-modules --type=module --eval \
+  "import { sep } from 'path'; console.log(sep);"
+
+coffee --print file-containing-import-statements.coffee | \
+  node --experimental-modules --type=module
+```
+
+### <code>package.json</code> <code>"type"</code> field
+
+Files ending with `.js` or `.mjs`, or lacking any extension,
+will be loaded as ES modules when the nearest parent `package.json` file
+contains a top-level field `"type"` with a value of `"module"`.
+
+The nearest parent `package.json` is defined as the first `package.json` found
+when searching in the current folder, that folder’s parent, and so on up
+until the root of the volume is reached.
+
+```js
+// package.json
+{
+  "type": "module"
+}
+```
+
+```sh
+# In same folder as above package.json
+node --experimental-modules my-app.js # Runs as ES module
+```
+
+If the nearest parent `package.json` lacks a `"type"` field, or contains
+`"type": "commonjs"`, extensionless and `.js` files are treated as CommonJS.
+If the volume root is reached and no `package.json` is found,
+Node.js behaves the same as if it had found a `package.json` with no `"type"`
+field.
+
+## Package Scope and File Extensions
+
+The folder containing a `package.json` file, and all subfolders below that
+folder down until the next folder containing another `package.json`, is
+considered a _package scope_. The `"type"` field defines how `.js` and
+extensionless files should be treated within a particular `package.json` file’s
+package scope. Every package in a project’s `node_modules` folder contains its
+own `package.json` file, so each project’s dependencies have their own package
+scopes. A `package.json` lacking a `"type"` field is treated as if it contained
+`"type": "commonjs"`.
+
+The package scope applies not only to initial entry points (`node --experimental-modules my-app.js`) but also to files referenced by `import` statements and `import()` expressions.
+
+```js
+// my-app.js, in an ES module package scope because there is a package.json
+// file in the same folder with "type": "module"
+
+import './startup/init.js';
+// Loaded as ES module since ./startup contains no package.json file,
+// and therefore inherits the ES module package scope from one level up
+
+import './node_modules/commonjs-package/index.js';
+// Loaded as CommonJS since ./node_modules/commonjs-package contains a
+// package.json file with no "type" field, or "type": "commonjs"
+```
+
+Files ending with `.mjs` are always loaded as ES modules regardless of package scope.
+
+Files ending with `.cjs` are always loaded as CommonJS regardless of package scope.
+
+You can use the `.mjs` and `.cjs` extensions to mix types within the same package scope:
+
+- Within a `"type": "module"` package scope, Node.js can be instructed to interpret a particular file as CommonJS by naming it with a `.cjs` extension (since both `.js` and `.mjs` files are treated as ES modules within a `"module"` package scope).
+
+- Within a `"type": "commonjs"` package scope, Node.js can be instructed to interpret a particular file as an ES module by naming it with an `.mjs` extension (since both `.js` and `.cjs` files are treated as CommonJS within a `"commonjs"` package scope).
 
 ## Features
 
@@ -256,7 +348,7 @@ PACKAGE_MAIN_RESOLVE(_packageURL_, _pjson_)
 >    1. If _url_ ends with _".cjs"_, then
 >       1. Throw a _Type Mismatch_ error.
 >    1. Return _"module"_.
-> 1. Let _pjson_ be the result of **READ_PACKAGE_BOUNDARY**(_url_).
+> 1. Let _pjson_ be the result of **READ_PACKAGE_SCOPE**(_url_).
 > 1. If _pjson_ is **null** and _isMain_ is **true**, then
 >    1. If _url_ ends in _".mjs"_, then
 >       1. Return _"module"_.
@@ -272,13 +364,13 @@ PACKAGE_MAIN_RESOLVE(_packageURL_, _pjson_)
 >       1. Throw an _Unsupported File Extension_ error.
 >    1. Return _"commonjs"_.
 
-READ_PACKAGE_BOUNDARY(_url_)
-> 1. Let _boundaryURL_ be _url_.
-> 1. While _boundaryURL_ is not the file system root,
->    1. Let _pjson_ be the result of **READ_PACKAGE_JSON**(_boundaryURL_).
+READ_PACKAGE_SCOPE(_url_)
+> 1. Let _scopeURL_ be _url_.
+> 1. While _scopeURL_ is not the file system root,
+>    1. Let _pjson_ be the result of **READ_PACKAGE_JSON**(_scopeURL_).
 >    1. If _pjson_ is not **null**, then
 >       1. Return _pjson_.
->    1. Set _boundaryURL_ to the parent URL of _boundaryURL_.
+>    1. Set _scopeURL_ to the parent URL of _scopeURL_.
 > 1. Return **null**.
 
 READ_PACKAGE_JSON(_packageURL_)
@@ -413,4 +505,4 @@ in the import tree.
 [Node.js EP for ES Modules]: https://github.com/nodejs/node-eps/blob/master/002-es-modules.md
 [dynamic instantiate hook]: #esm_dynamic_instantiate_hook
 [`module.createRequireFromPath()`]: modules.html#modules_module_createrequirefrompath_filename
-[ESM Minimal Kernel]: https://github.com/nodejs/modules/blob/master/doc/plan-for-new-modules-implementation.md
+[ecmascript-modules implementation]: https://github.com/nodejs/modules/blob/master/doc/plan-for-new-modules-implementation.md
