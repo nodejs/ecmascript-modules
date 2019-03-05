@@ -664,6 +664,6 @@ READ_PACKAGE_JSON(_packageURL_)
 [Node.js EP for ES Modules]: https://github.com/nodejs/node-eps/blob/master/002-es-modules.md
 [dynamic instantiate hook]: #esm_dynamic_instantiate_hook
 [`module.createRequireFromPath()`]: modules.html#modules_module_createrequirefrompath_filename
-[`import.meta.url`]: esm.html#importmeta
-[`import()`]: esm.html#import-expressions
+[`import.meta.url`]: #esm_import_meta
+[`import()`]: #esm_import-expressions
 [ecmascript-modules implementation]: https://github.com/nodejs/modules/blob/master/doc/plan-for-new-modules-implementation.md
