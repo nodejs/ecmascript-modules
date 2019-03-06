@@ -14,7 +14,7 @@ assert.strictEqual(commonjs, 'commonjs');
 assert.strictEqual(module, 'module');
 assert.strictEqual(success, 'success');
 assert.strictEqual(explicit, 'esm');
-assert.strictEqual(implicit, 'cjs');
+assert.strictEqual(implicit, 'esm');
 assert.strictEqual(implicitModule, 'esm');
 
 async function main() {
