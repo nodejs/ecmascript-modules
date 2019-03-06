@@ -736,34 +736,36 @@ Maybe<URL> FinalizeResolution(Environment* env,
 }
 
 Maybe<URL> PackageMainResolve(Environment* env,
-                                           const URL& pjson_url,
-                                           const PackageConfig& pcfg,
-                                           const URL& base) {
-  if (pcfg.exists == Exists::No || (
-      pcfg.esm == IsESM::Yes && pcfg.has_main == HasMain::No)) {
-    std::string msg = "Cannot find main entry point for '" +
-        URL(".", pjson_url).ToFilePath() + "' imported from " +
-        base.ToFilePath();
-    node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
-    return Nothing<URL>();
+                              const URL& pjson_url,
+                              const PackageConfig& pcfg,
+                              const URL& base) {
+  if (pcfg.exists == Exists::Yes) {
+    if (pcfg.has_main == HasMain::Yes) {
+      URL resolved(pcfg.main, pjson_url);
+      const std::string& path = resolved.ToFilePath();
+      if (CheckDescriptorAtPath(path) == FILE) {
+        return Just(resolved);
+      }
+    }
+    if (env->options()->es_module_specifier_resolution == "node") {
+      if (pcfg.has_main == HasMain::Yes) {
+        return FinalizeResolution(env, URL(pcfg.main, pjson_url), base);
+      } else {
+        return FinalizeResolution(env, URL("index", pjson_url), base);
+      }
+    }
+    if (pcfg.esm == IsESM::No) {
+      Maybe<URL> resolved = LegacyMainResolve(pjson_url, pcfg);
+      if (!resolved.IsNothing()) {
+        return resolved;
+      }
+    }
   }
-  if (pcfg.has_main == HasMain::Yes &&
-      pcfg.main.substr(pcfg.main.length() - 4, 4) != ".cjs" &&
-      (pcfg.main.substr(pcfg.main.length() - 4, 4) == ".mjs" ||
-      pcfg.esm == IsESM::Yes)) {
-    return FinalizeResolution(env, URL(pcfg.main, pjson_url), base);
-  }
-
-  Maybe<URL> resolved = LegacyMainResolve(pjson_url, pcfg);
-  // Legacy main resolution error
-  if (resolved.IsNothing()) {
-    std::string msg = "Cannot find main entry point for '" +
-        URL(".", pjson_url).ToFilePath() + "' imported from " +
-        base.ToFilePath();
-    node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
-    return Nothing<URL>();
-  }
-  return resolved;
+  std::string msg = "Cannot find main entry point for '" +
+      URL(".", pjson_url).ToFilePath() + "' imported from " +
+      base.ToFilePath();
+  node::THROW_ERR_MODULE_NOT_FOUND(env, msg.c_str());
+  return Nothing<URL>();
 }
 
 Maybe<URL> PackageResolve(Environment* env,
