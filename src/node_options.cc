@@ -253,7 +253,7 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             kAllowedInEnvironment);
   AddOption("--es-module-specifier-resolution",
             "Select extension resolution algorithm for es modules; "
-            "either 'none' or 'node'",
+            "either 'explicit' (default) or 'node'",
             &EnvironmentOptions::es_module_specifier_resolution,
             kAllowedInEnvironment);
   AddOption("--no-deprecation",
