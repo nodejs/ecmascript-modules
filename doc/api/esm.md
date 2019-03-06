@@ -147,6 +147,48 @@ package scope:
   extension (since both `.js` and `.cjs` files are treated as CommonJS within a
   `"commonjs"` package scope).
 
+## Package Entry Points
+
+When a `package.json` contains `"type": "module"`, its `"main"` field defines
+the ES module entry point for the package.
+
+<!-- eslint-skip -->
+```js
+// ./node_modules/es-module-package/package.json
+{
+  "type": "module",
+  "main": "./src/index.js"
+}
+```
+```js
+// ./my-app.mjs
+
+import { something } from 'es-module-package';
+// Loads from ./node_modules/es-module-package/src/index.js
+```
+
+An attempt to `require` the above `es-module-package` would attempt to load
+`./node_modules/es-module-package/src/index.js` as CommonJS, which would throw
+an error as Node.js would not be able to parse the `export` statement in
+CommonJS.
+
+Even if the `package.json` `"main"` points to a file ending in `.mjs`, the
+`"type": "module"` is required.
+
+As with `import` statements, for ES module usage the value of `"main"` must be
+a full path including extension: `"./index.mjs"`, not `"./index"`.
+
+> Currently a package can define _either_ a CommonJS entry point or an ES module
+> entry point; there is no way to specify separate entry points for CommonJS and
+> ES module usage. This means that a package entry point can be included via
+> `require` or via `import` but not both.
+>
+> Such a limitation makes it difficult for packages to support both new versions
+> of Node.js that understand ES modules and older versions of Node.js that
+> understand only CommonJS. There is work ongoing to remove this limitation, and
+> it will very likely entail changes to the behavior of `"main"` as defined
+> here.
+
 ## import.meta
 
 * {Object}
