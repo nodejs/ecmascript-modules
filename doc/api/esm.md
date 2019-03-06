@@ -20,7 +20,8 @@ specifier resolution, and default behavior.
 The `--experimental-modules` flag can be used to enable features for loading
 ECMAScript modules.
 
-Once this has been set, there are a few different ways to run a file as an ES module:
+Once this has been set, there are a few different ways to run a file as an ES
+module:
 
 ### <code>.mjs</code> extension
 
@@ -42,11 +43,13 @@ node --experimental-modules --type=module my-app.js
 node --experimental-modules -m my-app.js
 ```
 
-For completeness there is also `--type=commonjs`, for explicitly running a
-`.js` file as CommonJS.
-This is the default behavior if `--type` or `-m` is unspecified.
+For completeness there is also `--type=commonjs`, for explicitly running a `.js`
+file as CommonJS. This is the default behavior if `--type` or `-m` is
+unspecified.
 
-The `--type=module` or `-m` flags can also be used to tell Node.js to treat as an ES module input sent in via `--eval` or `--print` (or `-e` or `-p`) or piped to Node.js via `STDIN`.
+The `--type=module` or `-m` flags can also be used to tell Node.js to treat as
+an ES module input sent in via `--eval` or `--print` (or `-e` or `-p`) or piped
+to Node.js via `STDIN`.
 
 ```sh
 node --experimental-modules --type=module --eval \
@@ -66,6 +69,7 @@ The nearest parent `package.json` is defined as the first `package.json` found
 when searching in the current folder, that folder’s parent, and so on up
 until the root of the volume is reached.
 
+<!-- eslint-skip -->
 ```js
 // package.json
 {
@@ -86,7 +90,7 @@ field.
 
 ## Package Scope and File Extensions
 
-The folder containing a `package.json` file, and all subfolders below that
+A folder containing a `package.json` file, and all subfolders below that
 folder down until the next folder containing another `package.json`, is
 considered a _package scope_. The `"type"` field defines how `.js` and
 extensionless files should be treated within a particular `package.json` file’s
@@ -95,7 +99,9 @@ own `package.json` file, so each project’s dependencies have their own package
 scopes. A `package.json` lacking a `"type"` field is treated as if it contained
 `"type": "commonjs"`.
 
-The package scope applies not only to initial entry points (`node --experimental-modules my-app.js`) but also to files referenced by `import` statements and `import()` expressions.
+The package scope applies not only to initial entry points (`node
+--experimental-modules my-app.js`) but also to files referenced by `import`
+statements and `import()` expressions.
 
 ```js
 // my-app.js, in an ES module package scope because there is a package.json
@@ -106,31 +112,42 @@ import './startup/init.js';
 // and therefore inherits the ES module package scope from one level up
 
 import './node_modules/commonjs-package/index.js';
-// Loaded as CommonJS since ./node_modules/commonjs-package contains a
-// package.json file with no "type" field, or "type": "commonjs"
+// Loaded as CommonJS since ./node_modules/commonjs-package/package.json
+// lacks a "type" field or contains "type": "commonjs"
+
+import 'commonjs-package';
+// Loaded as CommonJS since ./node_modules/commonjs-package/package.json
+// lacks a "type" field or contains "type": "commonjs"
 ```
 
-Files ending with `.mjs` are always loaded as ES modules regardless of package scope.
+Files ending with `.mjs` are always loaded as ES modules regardless of package
+scope.
 
-Files ending with `.cjs` are always loaded as CommonJS regardless of package scope.
+Files ending with `.cjs` are always loaded as CommonJS regardless of package
+scope.
 
-You can use the `.mjs` and `.cjs` extensions to mix types within the same package scope:
+```js
+import './legacy-file.cjs';
+// Loaded as CommonJS since .cjs is always loaded as CommonJS
 
-- Within a `"type": "module"` package scope, Node.js can be instructed to interpret a particular file as CommonJS by naming it with a `.cjs` extension (since both `.js` and `.mjs` files are treated as ES modules within a `"module"` package scope).
+import 'commonjs-package/src/index.mjs';
+// Loaded as ES module since .mjs is always loaded as ES module
+```
 
-- Within a `"type": "commonjs"` package scope, Node.js can be instructed to interpret a particular file as an ES module by naming it with an `.mjs` extension (since both `.js` and `.cjs` files are treated as CommonJS within a `"commonjs"` package scope).
+You can use the `.mjs` and `.cjs` extensions to mix types within the same
+package scope:
 
-## Features
+- Within a `"type": "module"` package scope, Node.js can be instructed to
+  interpret a particular file as CommonJS by naming it with a `.cjs` extension
+  (since both `.js` and `.mjs` files are treated as ES modules within a
+  `"module"` package scope).
 
-<!-- type=misc -->
+- Within a `"type": "commonjs"` package scope, Node.js can be instructed to
+  interpret a particular file as an ES module by naming it with an `.mjs`
+  extension (since both `.js` and `.cjs` files are treated as CommonJS within a
+  `"commonjs"` package scope).
 
-### Supported
-
-Only the CLI argument for the main entry point to the program can be an entry
-point into an ESM graph. Dynamic import can also be used to create entry points
-into ESM graphs at runtime.
-
-#### import.meta
+## import.meta
 
 * {Object}
 
@@ -139,37 +156,44 @@ property:
 
 * `url` {string} The absolute `file:` URL of the module.
 
-### Unsupported
-
-| Feature | Reason |
-| --- | --- |
-| `require('./foo.mjs')` | ES Modules have differing resolution and timing, use dynamic import |
-
-## Notable differences between `import` and `require`
+## Differences Between ES Modules and CommonJS
 
 ### Mandatory file extensions
 
-You must provide a file extension when using the `import` keyword.
+You must provide a file extension when using the `import` keyword. Directory
+indexes (e.g. `'./startup/index.js'`) must also be fully specified.
 
-### No NODE_PATH
+This behavior matches how `import` behaves in browser environments, assuming a
+typically configured server.
+
+### No <code>NODE_PATH</code>
 
 `NODE_PATH` is not part of resolving `import` specifiers. Please use symlinks
 if this behavior is desired.
 
-### No `require.extensions`
+### No <code>require</code>, <code>exports</code>, <code>module.exports</code>, <code>\_\_filename</code>, <code>\_\_dirname</code>
+
+These CommonJS variables are not available in ES modules.
+
+`require` can be imported into an ES module using
+[`module.createRequireFromPath()`][].
+
+An equivalent for `__filename` and `__dirname` is [`import.meta.url`][].
+
+### No <code>require.extensions</code>
 
 `require.extensions` is not used by `import`. The expectation is that loader
 hooks can provide this workflow in the future.
 
-### No `require.cache`
+### No <code>require.cache</code>
 
 `require.cache` is not used by `import`. It has a separate cache.
 
-### URL based paths
+### URL-based paths
 
-ESM are resolved and cached based upon [URL](https://url.spec.whatwg.org/)
-semantics. This means that files containing special characters such as `#` and
-`?` need to be escaped.
+ES modules are resolved and cached based upon
+[URL](https://url.spec.whatwg.org/) semantics. This means that files containing
+special characters such as `#` and `?` need to be escaped.
 
 Modules will be loaded multiple times if the `import` specifier used to resolve
 them have a different query or fragment.
@@ -180,6 +204,59 @@ import './foo.mjs?query=2'; // loads ./foo.mjs with query of "?query=2"
 ```
 
 For now, only modules using the `file:` protocol can be loaded.
+
+## Interoperability with CommonJS
+
+### <code>require</code>
+
+`require` always treats the files it references as CommonJS. This applies
+whether `require` is used the traditional way within a CommonJS environment, or
+in an ES module environment using [`module.createRequireFromPath()`][].
+
+To include an ES module into CommonJS, use [`import()`][].
+
+### <code>import</code> statements
+
+An `import` statement can reference either ES module or CommonJS JavaScript.
+Other file types such as JSON and Native modules are not supported. For those,
+use [`module.createRequireFromPath()`][].
+
+`import` statements are permitted only in ES modules. For similar functionality
+in CommonJS, see [`import()`][].
+
+The _specifier_ of an `import` statement (the string after the `from` keyword)
+can either be an URL-style relative path like `'./file.mjs'` or a package name
+like `'fs'`.
+
+Like in CommonJS, files within packages can be accessed by appending a path to
+the package name.
+
+```js
+import { sin, cos } from 'geometry/trigonometry-functions.mjs';
+```
+
+> Currently only the “default export” is supported for CommonJS files or
+> packages:
+>
+> <!-- eslint-disable no-duplicate-imports -->
+> ```js
+> import _ from 'underscore'; // Works
+>
+> import { shuffle } from 'underscore'; // Errors
+> ```
+>
+> There are ongoing efforts to make the latter code possible.
+
+### <code>import()</code> expressions
+
+Dynamic `import()` is supported in both CommonJS and ES modules. It can be used
+to include ES module files from CommonJS code.
+
+```js
+(async () => {
+  await import('./my-app.mjs');
+})();
+```
 
 ## CommonJS, JSON, and Native Modules
 
@@ -505,4 +582,6 @@ in the import tree.
 [Node.js EP for ES Modules]: https://github.com/nodejs/node-eps/blob/master/002-es-modules.md
 [dynamic instantiate hook]: #esm_dynamic_instantiate_hook
 [`module.createRequireFromPath()`]: modules.html#modules_module_createrequirefrompath_filename
+[`import.meta.url`]: esm.html#importmeta
+[`import()`]: esm.html#import-expressions
 [ecmascript-modules implementation]: https://github.com/nodejs/modules/blob/master/doc/plan-for-new-modules-implementation.md
