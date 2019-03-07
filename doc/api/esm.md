@@ -341,9 +341,9 @@ module.exports = 'cjs';
 
 // esm.mjs
 import { createRequireFromPath as createRequire } from 'module';
-import { fileURLToPath as fromPath } from 'url';
+import { fileURLToPath as fromURL } from 'url';
 
-const require = createRequire(fromPath(import.meta.url));
+const require = createRequire(fromURL(import.meta.url));
 
 const cjs = require('./cjs');
 cjs === 'cjs'; // true
