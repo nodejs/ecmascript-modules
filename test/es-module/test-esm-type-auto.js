@@ -7,10 +7,13 @@ const version = process.version;
 
 expect('esm-with-import-statement.js', version);
 expect('esm-with-export-statement.js', version);
+expect('esm-with-import-expression.js', version);
+expect('esm-with-indented-import-statement.js', version);
 
 expect('cjs-with-require.js', version);
 expect('cjs-with-import-expression.js', version);
 expect('cjs-with-property-named-import.js', version);
+expect('cjs-with-property-named-export.js', version);
 expect('cjs-with-string-containing-import.js', version);
 
 expect('print-version.js', version);
