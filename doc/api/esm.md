@@ -49,7 +49,7 @@ For completeness there is also `--type=commonjs`, for explicitly running a `.js`
 file as CommonJS. This is the default behavior if `--type` or `-m` is
 unspecified.
 
-The `--type=module` or `-m` flags can also be used to tell Node.js to treat as
+The `--type=module` or `-m` flags can also be used to configure Node.js to treat as
 an ES module input sent in via `--eval` or `--print` (or `-e` or `-p`) or piped
 to Node.js via `STDIN`.
 
@@ -87,7 +87,7 @@ node --experimental-modules my-app.js # Runs as ES module
 If the nearest parent `package.json` lacks a `"type"` field, or contains
 `"type": "commonjs"`, extensionless and `.js` files are treated as CommonJS.
 If the volume root is reached and no `package.json` is found,
-Node.js behaves the same as if it had found a `package.json` with no `"type"`
+Node.js defers to the deafult, a `package.json` with no `"type"`
 field.
 
 ## Package Scope and File Extensions
