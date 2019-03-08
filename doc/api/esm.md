@@ -49,9 +49,9 @@ For completeness there is also `--type=commonjs`, for explicitly running a `.js`
 file as CommonJS. This is the default behavior if `--type` or `-m` is
 unspecified.
 
-The `--type=module` or `-m` flags can also be used to configure Node.js to treat as
-an ES module input sent in via `--eval` or `--print` (or `-e` or `-p`) or piped
-to Node.js via `STDIN`.
+The `--type=module` or `-m` flags can also be used to configure Node.js to treat
+as an ES module input sent in via `--eval` or `--print` (or `-e` or `-p`) or
+piped to Node.js via `STDIN`.
 
 ```sh
 node --experimental-modules --type=module --eval \
@@ -151,8 +151,9 @@ package scope:
 
 ## Package Entry Points
 
-When a `package.json` contains `"type": "module"`, its `"main"` field defines
-the ES module entry point for the package.
+The `package.json` `"main"` field defines the entry point for a package,
+whether the package is included into CommonJS via `require` or into an ES
+module via `import`.
 
 <!-- eslint-skip -->
 ```js
@@ -176,6 +177,9 @@ CommonJS.
 
 As with `import` statements, for ES module usage the value of `"main"` must be
 a full path including extension: `"./index.mjs"`, not `"./index"`.
+
+If the `package.json` `"type"` field is omitted, a `.js` file in `"main"` will
+be interpreted as CommonJS.
 
 > Currently a package can define _either_ a CommonJS entry point **or** an ES
 > module entry point; there is no way to specify separate entry points for
