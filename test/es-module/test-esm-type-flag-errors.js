@@ -28,7 +28,7 @@ function expect(opt = '', inputFile, want, wantsError = false) {
   opt = `--experimental-modules ${opt}`;
   const argv = [inputFile];
   const opts = {
-    env: Object.assign({}, process.env, { NODE_OPTIONS: opt }),
+    env: { ...process.env, NODE_OPTIONS: opt },
     maxBuffer: 1e6,
   };
   exec(process.execPath, argv, opts, common.mustCall((err, stdout, stderr) => {
