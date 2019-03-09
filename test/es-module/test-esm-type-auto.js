@@ -19,7 +19,10 @@ expect('cjs-with-string-containing-import.js', version);
 expect('print-version.js', version);
 expect('ambiguous-with-import-expression.js', version);
 
-function expect(file, want) {
+expect('syntax-error-1.js', 'SyntaxError', true);
+expect('syntax-error-2.js', 'SyntaxError', true);
+
+function expect(file, want, wantsError = false) {
   const argv = [
     require.resolve(`../fixtures/es-modules/type-auto-scope/${file}`)
   ];
@@ -32,6 +35,11 @@ function expect(file, want) {
     };
     exec(process.execPath, argv, opts,
          common.mustCall((err, stdout, stderr) => {
+           if (wantsError) {
+             stdout = stderr;
+           } else {
+             assert.ifError(err);
+           }
            if (stdout.includes(want)) return;
            assert.fail(
              `For ${file}, failed to find ${want} in: <\n${stdout}\n>`);
