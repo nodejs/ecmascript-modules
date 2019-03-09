@@ -27,7 +27,7 @@ function expect(file, want) {
     // TODO: Remove when --experimental-modules is unflagged
     opt = `--experimental-modules ${opt}`;
     const opts = {
-      env: Object.assign({}, process.env, { NODE_OPTIONS: opt }),
+      env: { ...process.env, NODE_OPTIONS: opt },
       maxBuffer: 1e6,
     };
     exec(process.execPath, argv, opts,
