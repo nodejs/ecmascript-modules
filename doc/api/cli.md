@@ -131,6 +131,9 @@ conjunction with native stack and other runtime environment data.
 added: v6.0.0
 -->
 
+Enable FIPS-compliant crypto at startup. (Requires Node.js to be built with
+`./configure --openssl-fips`.)
+
 ### `--entry-type=type`
 <!-- YAML
 added: REPLACEME
@@ -139,13 +142,20 @@ added: REPLACEME
 Used with `--experimental-modules`, this configures Node.js to interpret the
 initial entry point as CommonJS or as an ES module.
 
-Valid values are `"commonjs"` and `"module"`. The default is to infer from
-the file extension and the `"type"` field in the nearest parent `package.json`.
+Valid values are `"commonjs"`, `"module"` or `"auto"`. The default is to infer
+from the file extension and the `"type"` field in the nearest parent
+`package.json`.
+
+`--entry-type=auto` configures Node.js to interpret an _ambiguous_ initial entry
+point (no explicit file extension like `.mjs` or `.cjs`, no `"type"` field in
+the nearest parent `package.json`) as an ES module if Node.js finds an `import`
+or `export` statement in the initial entry point's source code. (Note that
+dynamic `import()` expressions are different from `import` statements;
+`import()` is allowed in both CommonJS and ES modules.) If no `import` or
+`export` statements are found, the initial entry point is interpreted as
+CommonJS.
 
 Works for executing a file as well as `--eval`, `--print`, `STDIN`.
-
-Enable FIPS-compliant crypto at startup. (Requires Node.js to be built with
-`./configure --openssl-fips`.)
 
 ### `--es-module-specifier-resolution=mode`
 <!-- YAML
