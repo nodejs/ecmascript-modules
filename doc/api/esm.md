@@ -5,6 +5,12 @@
 
 > Stability: 1 - Experimental
 
+## Introduction
+
+ECMAScript modules are the official standard format to package JavaScript code for reuse. Modules are defined using a variety of [`import`][] and [`export`][] statements.
+
+Node.js fully supports ECMAScript modules as they are currently specified and provides limited interoperability between them and the existing module format, [CommonJS][]. 
+
 <!--name=esm-->
 
 Node.js contains support for ES Modules based upon the
@@ -661,6 +667,9 @@ READ_PACKAGE_JSON(_packageURL_)
 
 </details>
 
+[`import`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import
+[`export`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export
+[CommonJS]: modules.html
 [Node.js EP for ES Modules]: https://github.com/nodejs/node-eps/blob/master/002-es-modules.md
 [dynamic instantiate hook]: #esm_dynamic_instantiate_hook
 [`module.createRequireFromPath()`]: modules.html#modules_module_createrequirefrompath_filename
