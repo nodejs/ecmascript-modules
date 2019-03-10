@@ -19,6 +19,7 @@ using node::contextify::ContextifyContext;
 using node::url::URL;
 using node::url::URL_FLAGS_FAILED;
 using v8::Array;
+using v8::Boolean;
 using v8::Context;
 using v8::Function;
 using v8::FunctionCallbackInfo;
@@ -474,6 +475,17 @@ std::string ReadFile(uv_file file) {
   return contents;
 }
 
+Maybe<std::string> RealPath(const std::string& path) {
+  uv_fs_t fs_req;
+  const int r = uv_fs_realpath(nullptr, &fs_req, path.c_str(), nullptr);
+  if (r < 0) {
+    return Nothing<std::string>();
+  }
+  std::string link_path = std::string(static_cast<const char*>(fs_req.ptr));
+  uv_fs_req_cleanup(&fs_req);
+  return Just(link_path);
+}
+
 enum DescriptorType {
   FILE,
   DIRECTORY,
@@ -532,14 +544,21 @@ Maybe<std::string> ReadIfFile(const std::string& path) {
 using Exists = PackageConfig::Exists;
 using IsValid = PackageConfig::IsValid;
 using HasMain = PackageConfig::HasMain;
-using IsESM = PackageConfig::IsESM;
+using PackageType = PackageConfig::PackageType;
 
-Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
-                                             const std::string& path,
-                                             const URL& base) {
+Maybe<PackageConfig*> GetPackageConfigMutable(Environment* env,
+                                              const std::string& path,
+                                              const URL& base) {
   auto existing = env->package_json_cache.find(path);
   if (existing != env->package_json_cache.end()) {
-    return Just(&existing->second);
+    PackageConfig* pcfg = &existing->second;
+    if (pcfg->is_valid == IsValid::No) {
+      std::string msg = "Invalid JSON in '" + path +
+        "' imported from " + base.ToFilePath();
+      node::THROW_ERR_INVALID_PACKAGE_CONFIG(env, msg.c_str());
+      return Nothing<PackageConfig*>();
+    }
+    return Just(pcfg);
   }
 
   Maybe<std::string> source = ReadIfFile(path);
@@ -547,7 +566,7 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
   if (source.IsNothing()) {
     auto entry = env->package_json_cache.emplace(path,
         PackageConfig { Exists::No, IsValid::Yes, HasMain::No, "",
-                        IsESM::No });
+                        PackageType::None });
     return Just(&entry.first->second);
   }
 
@@ -574,11 +593,11 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
   if (!parsed) {
     (void)env->package_json_cache.emplace(path,
         PackageConfig { Exists::Yes, IsValid::No, HasMain::No, "",
-                        IsESM::No });
+                        PackageType::None });
     std::string msg = "Invalid JSON in '" + path +
         "' imported from " + base.ToFilePath();
     node::THROW_ERR_INVALID_PACKAGE_CONFIG(env, msg.c_str());
-    return Nothing<const PackageConfig*>();
+    return Nothing<PackageConfig*>();
   }
 
   Local<Value> pkg_main;
@@ -592,12 +611,15 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
     main_std.assign(std::string(*main_utf8, main_utf8.length()));
   }
 
-  IsESM::Bool esm = IsESM::No;
+  PackageType::Type pkg_type = PackageType::None;
   Local<Value> type_v;
   if (pkg_json->Get(env->context(), env->type_string()).ToLocal(&type_v)) {
     if (type_v->StrictEquals(env->module_string())) {
-      esm = IsESM::Yes;
+      pkg_type = PackageType::Module;
+    } else if (type_v->StrictEquals(env->commonjs_string())) {
+      pkg_type = PackageType::CommonJS;
     }
+    // ignore unknown types for forwards compatibility
   }
 
   Local<Value> exports_v;
@@ -606,19 +628,53 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
       (exports_v->IsObject() || exports_v->IsString() ||
       exports_v->IsBoolean())) {
     Persistent<Value> exports;
-    // esm = IsESM::Yes;
     exports.Reset(env->isolate(), exports_v);
 
     auto entry = env->package_json_cache.emplace(path,
         PackageConfig { Exists::Yes, IsValid::Yes, has_main, main_std,
-                        esm });
+                        pkg_type });
     return Just(&entry.first->second);
   }
 
   auto entry = env->package_json_cache.emplace(path,
       PackageConfig { Exists::Yes, IsValid::Yes, has_main, main_std,
-                      esm });
+                      pkg_type });
   return Just(&entry.first->second);
+}
+
+Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
+                                             const std::string& path,
+                                             const URL& base) {
+  Maybe<PackageConfig*> pcfg_result = GetPackageConfigMutable(env, path, base);
+  if (pcfg_result.IsNothing())
+    return Nothing<const PackageConfig*>();
+  const PackageConfig* pcfg = pcfg_result.FromJust();
+  return Just(pcfg);
+}
+
+Maybe<const PackageConfig*> GetPackageScopeConfig(Environment* env,
+                                                  const URL& resolved,
+                                                  const URL& base) {
+  URL pjson_url("./package.json", &resolved);
+  while (true) {
+    Maybe<const PackageConfig*> pkg_cfg =
+        GetPackageConfig(env, pjson_url.ToFilePath(), base);
+    if (pkg_cfg.IsNothing()) return pkg_cfg;
+    if (pkg_cfg.FromJust()->exists == Exists::Yes) return pkg_cfg;
+
+    URL last_pjson_url = pjson_url;
+    pjson_url = URL("../package.json", pjson_url);
+
+    // Terminates at root where ../package.json equals ../../package.json
+    // (can't just check "/package.json" for Windows support).
+    if (pjson_url.path() == last_pjson_url.path()) {
+      auto entry = env->package_json_cache.emplace(pjson_url.ToFilePath(),
+          PackageConfig { Exists::No, IsValid::Yes, HasMain::No, "",
+                          PackageType::None });
+      const PackageConfig* pcfg = &entry.first->second;
+      return Just(pcfg);
+    }
+  }
 }
 
 /*
@@ -754,7 +810,7 @@ Maybe<URL> PackageMainResolve(Environment* env,
         return FinalizeResolution(env, URL("index", pjson_url), base);
       }
     }
-    if (pcfg.esm == IsESM::No) {
+    if (pcfg.type != PackageType::Module) {
       Maybe<URL> resolved = LegacyMainResolve(pjson_url, pcfg);
       if (!resolved.IsNothing()) {
         return resolved;
@@ -830,8 +886,8 @@ Maybe<URL> PackageResolve(Environment* env,
 }  // anonymous namespace
 
 Maybe<URL> Resolve(Environment* env,
-                                const std::string& specifier,
-                                const URL& base) {
+                   const std::string& specifier,
+                   const URL& base) {
   // Order swapped from spec for minor perf gain.
   // Ok since relative URLs cannot parse as URLs.
   URL resolved;
@@ -848,11 +904,73 @@ Maybe<URL> Resolve(Environment* env,
   return FinalizeResolution(env, resolved, base);
 }
 
+Maybe<bool> IsLegacyType(Environment* env,
+                         const URL& resolved) {
+  Maybe<const PackageConfig*> pcfg =
+      GetPackageScopeConfig(env, resolved, resolved);
+  if (pcfg.IsNothing()) {
+    return Nothing<bool>();
+  }
+  bool legacy = pcfg.FromJust()->exists == Exists::No ||
+      pcfg.FromJust()->type != PackageType::Module;
+  return Just(legacy);
+}
+
+void ModuleWrap::SetScopeType(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
+  // module.setScopeType(resolved, legacy)
+  CHECK_EQ(args.Length(), 2);
+
+  CHECK(args[0]->IsString());
+  Utf8Value path_utf8(env->isolate(), args[0]);
+  std::string path(*path_utf8, path_utf8.length());
+
+  TryCatchScope try_catch(env);
+
+  const URL resolved = URL::FromFilePath(path);
+
+  CHECK(args[1]->IsBoolean());
+  bool legacy = args[1]->IsTrue();
+
+  URL pjson_url("./package.json", resolved);
+
+  Maybe<PackageConfig*> pcfg_result =
+      GetPackageConfigMutable(env, pjson_url.ToFilePath(), resolved);
+
+  if (pcfg_result.IsNothing()) {
+    CHECK(try_catch.HasCaught());
+    try_catch.ReThrow();
+    return;
+  }
+
+  PackageType::Type pkg_type =
+      legacy ? PackageType::CommonJS : PackageType::Module;
+
+  PackageConfig* pcfg = pcfg_result.FromJust();
+
+  bool conflict_err = false;
+
+  if (pcfg->exists == Exists::No) {
+    pcfg->exists = Exists::Yes;
+    pcfg->type = pkg_type;
+  } else {
+    if ((legacy && pcfg->type == PackageType::Module) ||
+        (!legacy && pcfg->type == PackageType::CommonJS)) {
+      conflict_err = true;
+    } else {
+      pcfg->type = pkg_type;
+    }
+  }
+
+  args.GetReturnValue().Set(Boolean::New(env->isolate(), conflict_err));
+}
+
 void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  // module.resolve(specifier, url)
-  CHECK_EQ(args.Length(), 2);
+  // module.resolve(specifier, url, realpath)
+  CHECK_EQ(args.Length(), 3);
 
   CHECK(args[0]->IsString());
   Utf8Value specifier_utf8(env->isolate(), args[0]);
@@ -861,6 +979,9 @@ void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[1]->IsString());
   Utf8Value url_utf8(env->isolate(), args[1]);
   URL url(*url_utf8, url_utf8.length());
+
+  CHECK(args[2]->IsBoolean());
+  bool realpath = args[2]->IsTrue();
 
   if (url.flags() & URL_FLAGS_FAILED) {
     return node::THROW_ERR_INVALID_ARG_TYPE(
@@ -882,7 +1003,44 @@ void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   URL resolution = result.FromJust();
   CHECK(!(resolution.flags() & URL_FLAGS_FAILED));
 
-  Local<Value> resolved = resolution.ToObject(env).ToLocalChecked();
+  if (realpath) {
+    Maybe<std::string> real_resolution =
+        node::loader::RealPath(resolution.ToFilePath());
+    // Note: Ensure module resolve FS error handling consistency
+    if (real_resolution.IsNothing()) {
+      std::string msg = "realpath error resolving " + resolution.ToFilePath();
+      env->ThrowError(msg.c_str());
+      try_catch.ReThrow();
+      return;
+    }
+    std::string fragment = resolution.fragment();
+    std::string query = resolution.query();
+    resolution = URL::FromFilePath(real_resolution.FromJust());
+    resolution.set_fragment(fragment);
+    resolution.set_query(query);
+  }
+
+  Maybe<bool> legacy = node::loader::IsLegacyType(env, resolution);
+  if (result.IsNothing()) {
+    CHECK(try_catch.HasCaught());
+    try_catch.ReThrow();
+    return;
+  }
+  CHECK(!try_catch.HasCaught());
+
+  Local<Object> resolved = Object::New(env->isolate());
+
+  resolved->DefineOwnProperty(
+    env->context(),
+    env->legacy_string(),
+    Boolean::New(env->isolate(), legacy.FromJust()),
+    v8::ReadOnly).FromJust();
+
+  resolved->DefineOwnProperty(
+    env->context(),
+    env->url_string(),
+    resolution.ToObject(env).ToLocalChecked(),
+    v8::ReadOnly).FromJust();
 
   args.GetReturnValue().Set(resolved);
 }
@@ -1020,6 +1178,7 @@ void ModuleWrap::Initialize(Local<Object> target,
   target->Set(env->context(), FIXED_ONE_BYTE_STRING(isolate, "ModuleWrap"),
               tpl->GetFunction(context).ToLocalChecked()).FromJust();
   env->SetMethod(target, "resolve", Resolve);
+  env->SetMethod(target, "setScopeType", SetScopeType);
   env->SetMethod(target,
                  "setImportModuleDynamicallyCallback",
                  SetImportModuleDynamicallyCallback);

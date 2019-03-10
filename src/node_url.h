@@ -153,6 +153,14 @@ class URL {
     return context_.fragment;
   }
 
+  void set_fragment(const std::string& fragment) {
+    context_.fragment = fragment;
+  }
+
+  void set_query(const std::string& query) {
+    context_.query = query;
+  }
+
   std::string path() const {
     std::string ret;
     for (const std::string& element : context_.path) {

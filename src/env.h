@@ -82,14 +82,17 @@ struct PackageConfig {
   struct HasMain {
     enum Bool { No, Yes };
   };
-  struct IsESM {
+  struct IsModule {
     enum Bool { No, Yes };
   };
-  const Exists::Bool exists;
+  struct PackageType {
+    enum Type { None, CommonJS, Module };
+  };
+  Exists::Bool exists;
   const IsValid::Bool is_valid;
   const HasMain::Bool has_main;
   const std::string main;
-  const IsESM::Bool esm;
+  PackageType::Type type;
 };
 }  // namespace loader
 
@@ -149,6 +152,7 @@ constexpr size_t kFsStatsBufferLength = kFsStatsFieldsNumber * 2;
   V(channel_string, "channel")                                                 \
   V(chunks_sent_since_last_write_string, "chunksSentSinceLastWrite")           \
   V(code_string, "code")                                                       \
+  V(commonjs_string, "commonjs")                                               \
   V(config_string, "config")                                                   \
   V(constants_string, "constants")                                             \
   V(crypto_dsa_string, "dsa")                                                  \
@@ -793,7 +797,7 @@ class Environment {
   inline uint32_t get_next_script_id();
   inline uint32_t get_next_function_id();
 
-  std::unordered_map<std::string, const loader::PackageConfig>
+  std::unordered_map<std::string, loader::PackageConfig>
       package_json_cache;
 
   inline double* heap_statistics_buffer() const;
