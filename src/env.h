@@ -74,23 +74,16 @@ namespace loader {
 class ModuleWrap;
 
 struct PackageConfig {
-  struct Exists {
-    enum Bool { No, Yes };
-  };
-  struct IsValid {
-    enum Bool { No, Yes };
-  };
-  struct HasMain {
-    enum Bool { No, Yes };
-  };
-  struct IsESM {
-    enum Bool { No, Yes };
-  };
-  const Exists::Bool exists;
-  const IsValid::Bool is_valid;
-  const HasMain::Bool has_main;
+  enum class Exists { Yes, No };
+  enum class IsValid { Yes, No };
+  enum class HasMain { Yes, No };
+  enum PackageType : uint32_t { None = 0, CommonJS, Module };
+
+  const Exists exists;
+  const IsValid is_valid;
+  const HasMain has_main;
   const std::string main;
-  const IsESM::Bool esm;
+  const PackageType type;
 };
 }  // namespace loader
 
@@ -150,6 +143,7 @@ constexpr size_t kFsStatsBufferLength = kFsStatsFieldsNumber * 2;
   V(channel_string, "channel")                                                 \
   V(chunks_sent_since_last_write_string, "chunksSentSinceLastWrite")           \
   V(code_string, "code")                                                       \
+  V(commonjs_string, "commonjs")                                               \
   V(config_string, "config")                                                   \
   V(constants_string, "constants")                                             \
   V(crypto_dsa_string, "dsa")                                                  \
@@ -223,7 +217,6 @@ constexpr size_t kFsStatsBufferLength = kFsStatsFieldsNumber * 2;
   V(kill_signal_string, "killSignal")                                          \
   V(kind_string, "kind")                                                       \
   V(library_string, "library")                                                 \
-  V(legacy_string, "legacy")                                                   \
   V(mac_string, "mac")                                                         \
   V(main_string, "main")                                                       \
   V(max_buffer_string, "maxBuffer")                                            \
