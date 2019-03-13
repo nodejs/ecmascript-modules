@@ -7,9 +7,13 @@
 
 ## Introduction
 
-ECMAScript modules are the official standard format to package JavaScript code for reuse. Modules are defined using a variety of [`import`][] and [`export`][] statements.
+ECMAScript modules are the official standard format to package JavaScript code
+for reuse. Modules are defined using a variety of [`import`][] and [`export`][]
+statements.
 
-Node.js fully supports ECMAScript modules as they are currently specified and provides limited interoperability between them and the existing module format, [CommonJS][]. 
+Node.js fully supports ECMAScript modules as they are currently specified and
+provides limited interoperability between them and the existing module format,
+[CommonJS][].
 
 <!--name=esm-->
 
@@ -400,12 +404,28 @@ being standardized, and are experimentally supported by including the
 additional flag `--experimental-json-modules` when running Node.js.
 
 When the `--experimental-json-modules` flag is included both the
-`commonjs` and `modules` mode will use the new experimental JSON
+`commonjs` and `module` mode will use the new experimental JSON
 loader. The imported JSON only exposes a `default`, there is no
 support for named exports. A cache entry is created in the CommonJS
 cache, to avoid duplication. The same object will be returned in
 CommonJS if the JSON module has already been imported from the
 same path.
+
+Assuming an `index.js` with
+
+<!-- eslint-skip -->
+```js
+import packageConfig from './package.json';
+```
+
+You will need to include the `--experimental-json-modules` flag for the module
+to work.
+
+<!-- eslint-skip -->
+```bash
+$ node --experimental-modules --type=module index.js # fails
+$ node --experimental-modules --type=module --experimental-json-modules index.js # works
+`
 
 ## Experimental Loader hooks
 
@@ -680,18 +700,20 @@ READ_PACKAGE_JSON(_packageURL_)
 
 The current specifier resolution does not support all default behavior of
 the CommonJS loader. One of the behavior differences is automatic resolution
-of file extensions and the ability to import directories that have an index file.
+of file extensions and the ability to import directories that have an index
+file.
 
-By using the `--es-module-specifier-resolution=[mode]` flag you can customize the extension
-resolution algorithm. The default mode is `explicit`, which requires the full path to a
-module be provided to the loader. To enable the automatic extension resolution and importing
-from directories that include an index file use the `node` mode.
+By using the `--es-module-specifier-resolution=[mode]` flag you can customize
+the extension resolution algorithm. The default mode is `explicit`, which
+requires the full path to a module be provided to the loader. To enable the
+automatic extension resolution and importing from directories that include an
+index file use the `node` mode.
 
 ```bash
 $ node --experimental-modules index.mjs
 success!
 $ node --experimental-modules index #Failure!
-Error: Cannot find module 
+Error: Cannot find module
 $ node --experimental-modules --es-module-specifier-resolution=node index
 success!
 ```
