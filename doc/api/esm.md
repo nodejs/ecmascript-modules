@@ -423,9 +423,9 @@ to work.
 
 <!-- eslint-skip -->
 ```bash
-$ node --experimental-modules --type=module index.js # fails
-$ node --experimental-modules --type=module --experimental-json-modules index.js # works
-`
+node --experimental-modules --type=module index.js # fails
+node --experimental-modules --type=module --experimental-json-modules index.js # works
+```
 
 ## Experimental Loader hooks
 

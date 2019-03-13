@@ -932,7 +932,7 @@ greater than `4` (its current default value). For more information, see the
 [debugger]: debugger.html
 [debugging security implications]: https://nodejs.org/en/docs/guides/debugging-getting-started/#security-implications
 [emit_warning]: process.html#process_process_emitwarning_warning_type_code_ctor
-[experimental ECMAScript Module]: esm.html#esm_experimental_loader_hooks
+[experimental ECMAScript Module]: esm.html#esm_resolve_hook
 [customizing esm specifier resolution]: esm.html#esm_customizing_esm_specifier_resolution_algorithm
 [libuv threadpool documentation]: http://docs.libuv.org/en/latest/threadpool.html
 [remote code execution]: https://www.owasp.org/index.php/Code_Injection
