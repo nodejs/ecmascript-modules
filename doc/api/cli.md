@@ -134,6 +134,13 @@ added: v6.0.0
 Enable FIPS-compliant crypto at startup. (Requires Node.js to be built with
 `./configure --openssl-fips`.)
 
+### `--experimental-json-modules`
+<!-- YAML
+added: REPLACEME
+-->
+
+Enable experimental JSON support for ES modules.
+
 ### `--experimental-modules`
 <!-- YAML
 added: v8.5.0
