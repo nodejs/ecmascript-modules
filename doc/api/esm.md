@@ -679,7 +679,7 @@ READ_PACKAGE_JSON(_packageURL_)
 ### Customizing ESM specifier resolution algorithm
 
 The current specifier resolution does not support all default behavior of
-the Common.js loader. One of the behavior differences is automatic resolution
+the CommonJS loader. One of the behavior differences is automatic resolution
 of file extensions and the ability to import directories that have an index file.
 
 By using the `--es-module-specifier-resolution=[mode]` flag you can customize the extension
@@ -687,6 +687,14 @@ resolution algorithm. The default mode is `explicit`, which requires the full pa
 module be provided to the loader. To enable the automatic extension resolution and importing
 from directories that include an index file use the `node` mode.
 
+```bash
+$ node --experimental-modules index.mjs
+success!
+$ node --experimental-modules index #Failure!
+Error: Cannot find module 
+$ node --experimental-modules --es-module-specifier-resolution=node index
+success!
+```
 
 [`import`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import
 [`export`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export
