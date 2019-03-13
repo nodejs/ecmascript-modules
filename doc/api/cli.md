@@ -153,7 +153,7 @@ Please see [customizing esm specifier resolution][] for example usage.
 added: REPLACEME
 -->
 
-Enable experimental JSON support for ES modules.
+Enable experimental JSON support for the ES Module loader.
 
 ### `--experimental-modules`
 <!-- YAML
