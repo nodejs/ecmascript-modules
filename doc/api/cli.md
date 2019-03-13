@@ -134,6 +134,27 @@ added: v6.0.0
 Enable FIPS-compliant crypto at startup. (Requires Node.js to be built with
 `./configure --openssl-fips`.)
 
+### `--es-module-specifier-resolution=mode`
+<!-- YAML
+added: REPLACEME
+-->
+
+To be used in conjunction with `--experimental modules`. Sets the resolution
+algorithm for resolving specifiers. Valid options are `explicit` and `node`.
+
+The default is `explicit`, which requires you to provide the full path to a
+module. The `node` mode will enable support for optional file extensions and
+the ability to import a directory that has an index file.
+
+Please see [customizing esm specifier resolution][] for example usage.
+
+### `--experimental-json-modules`
+<!-- YAML
+added: REPLACEME
+-->
+
+Enable experimental JSON support for the ES Module loader.
+
 ### `--experimental-modules`
 <!-- YAML
 added: v8.5.0
@@ -911,7 +932,8 @@ greater than `4` (its current default value). For more information, see the
 [debugger]: debugger.html
 [debugging security implications]: https://nodejs.org/en/docs/guides/debugging-getting-started/#security-implications
 [emit_warning]: process.html#process_process_emitwarning_warning_type_code_ctor
-[experimental ECMAScript Module]: esm.html#esm_experimental_loader_hooks
+[experimental ECMAScript Module]: esm.html#esm_resolve_hook
+[customizing esm specifier resolution]: esm.html#esm_customizing_esm_specifier_resolution_algorithm
 [libuv threadpool documentation]: http://docs.libuv.org/en/latest/threadpool.html
 [remote code execution]: https://www.owasp.org/index.php/Code_Injection
 [secureProtocol]: tls.html#tls_tls_createsecurecontext_options
