@@ -476,17 +476,6 @@ std::string ReadFile(uv_file file) {
   return contents;
 }
 
-Maybe<std::string> RealPath(const std::string& path) {
-  uv_fs_t fs_req;
-  const int r = uv_fs_realpath(nullptr, &fs_req, path.c_str(), nullptr);
-  if (r < 0) {
-    return Nothing<std::string>();
-  }
-  std::string link_path = std::string(static_cast<const char*>(fs_req.ptr));
-  uv_fs_req_cleanup(&fs_req);
-  return Just(link_path);
-}
-
 enum DescriptorType {
   FILE,
   DIRECTORY,
@@ -895,21 +884,11 @@ Maybe<URL> Resolve(Environment* env,
   return FinalizeResolution(env, resolved, base);
 }
 
-Maybe<PackageType::Type> GetPackageType(Environment* env,
-                                        const URL& resolved) {
-  Maybe<const PackageConfig*> pcfg =
-      GetPackageScopeConfig(env, resolved, resolved);
-  if (pcfg.IsNothing()) {
-    return Nothing<PackageType::Type>();
-  }
-  return Just(pcfg.FromJust()->type);
-}
-
 void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  // module.resolve(specifier, url, realpath)
-  CHECK_EQ(args.Length(), 3);
+  // module.resolve(specifier, url)
+  CHECK_EQ(args.Length(), 2);
 
   CHECK(args[0]->IsString());
   Utf8Value specifier_utf8(env->isolate(), args[0]);
@@ -918,9 +897,6 @@ void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[1]->IsString());
   Utf8Value url_utf8(env->isolate(), args[1]);
   URL url(*url_utf8, url_utf8.length());
-
-  CHECK(args[2]->IsBoolean());
-  bool realpath = args[2]->IsTrue();
 
   if (url.flags() & URL_FLAGS_FAILED) {
     return node::THROW_ERR_INVALID_ARG_TYPE(
@@ -942,47 +918,27 @@ void ModuleWrap::Resolve(const FunctionCallbackInfo<Value>& args) {
   URL resolution = result.FromJust();
   CHECK(!(resolution.flags() & URL_FLAGS_FAILED));
 
-  if (realpath) {
-    Maybe<std::string> real_resolution =
-        node::loader::RealPath(resolution.ToFilePath());
-    // Note: Ensure module resolve FS error handling consistency
-    if (real_resolution.IsNothing()) {
-      std::string msg = "realpath error resolving " + resolution.ToFilePath();
-      env->ThrowError(msg.c_str());
-      try_catch.ReThrow();
-      return;
-    }
-    std::string fragment = resolution.fragment();
-    std::string query = resolution.query();
-    resolution = URL::FromFilePath(real_resolution.FromJust());
-    resolution.set_fragment(fragment);
-    resolution.set_query(query);
+  args.GetReturnValue().Set(resolution.ToObject(env).ToLocalChecked());
+}
+
+void ModuleWrap::GetPackageType(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
+  // module.getPackageType(url)
+  CHECK_EQ(args.Length(), 1);
+
+  CHECK(args[0]->IsString());
+  Utf8Value url_utf8(env->isolate(), args[0]);
+  URL url(*url_utf8, url_utf8.length());
+
+  PackageType::Type pkg_type = PackageType::None;
+  Maybe<const PackageConfig*> pcfg =
+      GetPackageScopeConfig(env, url, url);
+  if (!pcfg.IsNothing()) {
+    pkg_type = pcfg.FromJust()->type;
   }
 
-  Maybe<PackageType::Type> pkg_type =
-      node::loader::GetPackageType(env, resolution);
-  if (result.IsNothing()) {
-    CHECK(try_catch.HasCaught());
-    try_catch.ReThrow();
-    return;
-  }
-  CHECK(!try_catch.HasCaught());
-
-  Local<Object> resolved = Object::New(env->isolate());
-
-  resolved->DefineOwnProperty(
-    env->context(),
-    env->type_string(),
-    Integer::New(env->isolate(), pkg_type.FromJust()),
-    v8::ReadOnly).FromJust();
-
-  resolved->DefineOwnProperty(
-    env->context(),
-    env->url_string(),
-    resolution.ToObject(env).ToLocalChecked(),
-    v8::ReadOnly).FromJust();
-
-  args.GetReturnValue().Set(resolved);
+  args.GetReturnValue().Set(Integer::New(env->isolate(), pkg_type));
 }
 
 static MaybeLocal<Promise> ImportModuleDynamically(
@@ -1118,6 +1074,7 @@ void ModuleWrap::Initialize(Local<Object> target,
   target->Set(env->context(), FIXED_ONE_BYTE_STRING(isolate, "ModuleWrap"),
               tpl->GetFunction(context).ToLocalChecked()).FromJust();
   env->SetMethod(target, "resolve", Resolve);
+  env->SetMethod(target, "getPackageType", GetPackageType);
   env->SetMethod(target,
                  "setImportModuleDynamicallyCallback",
                  SetImportModuleDynamicallyCallback);

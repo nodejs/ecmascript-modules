@@ -64,7 +64,7 @@ symlinks.forEach((symlink) => {
                     stdout.includes(symlink.prints)) return;
           assert.fail(`For ${JSON.stringify(symlink)}, ${
             (symlink.errorsWithPreserveSymlinksMain) ?
-              'failed to error' : `errored unexpectedly\n${err}`
+              'failed to error' : 'errored unexpectedly'
           } with --preserve-symlinks-main`);
         } else {
           if (stdout.includes(symlink.prints)) return;

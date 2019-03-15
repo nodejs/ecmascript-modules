@@ -86,7 +86,7 @@ struct PackageConfig {
     enum Bool { No, Yes };
   };
   struct PackageType {
-    enum Type : uint32_t { None, CommonJS, Module };
+    enum Type : uint32_t { None = 0, CommonJS, Module };
   };
   const Exists::Bool exists;
   const IsValid::Bool is_valid;
