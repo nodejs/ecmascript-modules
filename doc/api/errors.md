@@ -1445,7 +1445,7 @@ strict compliance with the API specification (which in some cases may accept
 
 > Stability: 1 - Experimental
 
-An [ES6 module][] loader hook specified `format: 'dynamic'` but did not provide
+An [ES Module][] loader hook specified `format: 'dynamic'` but did not provide
 a `dynamicInstantiate` hook.
 
 <a id="ERR_MISSING_MESSAGE_PORT_IN_TRANSFER_LIST"></a>
@@ -1466,7 +1466,7 @@ this error will not occur with standard builds of Node.js.
 
 > Stability: 1 - Experimental
 
-An [ESM module][] could not be resolved.
+An [ES Module][] could not be resolved.
 
 <a id="ERR_MULTIPLE_CALLBACK"></a>
 ### ERR_MULTIPLE_CALLBACK
@@ -1553,7 +1553,7 @@ A given value is out of the accepted range.
 
 > Stability: 1 - Experimental
 
-An attempt was made to `require()` an [ES6 module][].
+An attempt was made to `require()` an [ES Module][].
 
 <a id="ERR_SCRIPT_EXECUTION_INTERRUPTED"></a>
 ### ERR_SCRIPT_EXECUTION_INTERRUPTED
@@ -2219,14 +2219,14 @@ Used in the `repl` in case the old history file is used and an error occurred
 while trying to read and parse it.
 
 <a id="ERR_INVALID_REPL_TYPE"></a>
-### ERR_INVALID_REPL_TYPE
+#### ERR_INVALID_REPL_TYPE
 
 > Stability: 1 - Experimental
 
 The `--type=...` flag is not compatible with the Node.js REPL.
 
 <a id="ERR_TYPE_MISMATCH"></a>
-### ERR_TYPE_MISMATCH
+#### ERR_TYPE_MISMATCH
 
 > Stability: 1 - Experimental
 
@@ -2238,7 +2238,7 @@ a `.js` file where the nearest parent `package.json` either lacks a `"type"`
 field or contains `"type": "commonjs"`.
 
 <a id="ERR_INVALID_TYPE_FLAG"></a>
-### ERR_INVALID_TYPE_FLAG
+#### ERR_INVALID_TYPE_FLAG
 
 > Stability: 1 - Experimental
 
@@ -2247,7 +2247,7 @@ An invalid `--type=...` flag value was provided.
 <a id="ERR_MISSING_DYNAMIC_INSTANTIATE_HOOK"></a>
 #### ERR_MISSING_DYNAMIC_INSTANTIATE_HOOK
 
-Used when an [ES6 module][] loader hook specifies `format: 'dynamic'` but does
+Used when an [ES Module][] loader hook specifies `format: 'dynamic'` but does
 not provide a `dynamicInstantiate` hook.
 
 <a id="ERR_STREAM_HAS_STRINGDECODER"></a>
@@ -2316,7 +2316,7 @@ such as `process.stdout.on('data')`.
 [`subprocess.kill()`]: child_process.html#child_process_subprocess_kill_signal
 [`subprocess.send()`]: child_process.html#child_process_subprocess_send_message_sendhandle_options_callback
 [`zlib`]: zlib.html
-[ES6 module]: esm.html
+[ES Module]: esm.html
 [ICU]: intl.html#intl_internationalization_support
 [Node.js Error Codes]: #nodejs-error-codes
 [V8's stack trace API]: https://github.com/v8/v8/wiki/Stack-Trace-API
