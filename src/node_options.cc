@@ -107,8 +107,14 @@ void EnvironmentOptions::CheckOptions(std::vector<std::string>* errors) {
     errors->push_back("--loader requires --experimental-modules be enabled");
   }
 
-  if (!module_type.empty() && !experimental_modules) {
-    errors->push_back("--type requires --experimental-modules be enabled");
+  if (!module_type.empty()) {
+    if (!experimental_modules) {
+      errors->push_back("--entry-type requires "
+                        "--experimental-modules to be enabled");
+    }
+    if (module_type != "commonjs" && module_type != "module") {
+      errors->push_back("--entry-type must \"module\" or \"commonjs\"");
+    }
   }
 
   if (experimental_json_modules && !experimental_modules) {
@@ -332,8 +338,8 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             "show stack traces on process warnings",
             &EnvironmentOptions::trace_warnings,
             kAllowedInEnvironment);
-  AddOption("--type",
-            "top-level module type name",
+  AddOption("--entry-type",
+            "set module type name of the entry point",
             &EnvironmentOptions::module_type,
             kAllowedInEnvironment);
 

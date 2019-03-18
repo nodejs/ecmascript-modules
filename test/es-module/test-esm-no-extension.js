@@ -12,7 +12,7 @@ const entry = fixtures.path('/es-modules/noext-esm');
 
 const child = spawn(process.execPath, [
   '--experimental-modules',
-  '--type=module',
+  '--entry-type=module',
   entry
 ]);
 

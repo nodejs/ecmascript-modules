@@ -34,12 +34,12 @@ syntaxArgs.forEach(function(arg) {
   assert.strictEqual(c.status, 1);
 });
 
-// Check --type=module
+// Check --entry-type=module
 syntaxArgs.forEach(function(arg) {
   const stdin = 'export var p = 5; var foo bar;';
   const c = spawnSync(
     node,
-    ['--experimental-modules', '--type=module', '--no-warnings', arg],
+    ['--experimental-modules', '--entry-type=module', '--no-warnings', arg],
     { encoding: 'utf8', input: stdin }
   );
 

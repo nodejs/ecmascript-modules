@@ -119,6 +119,9 @@ Enable FIPS-compliant crypto at startup.
 Requires Node.js to be built with
 .Sy ./configure --openssl-fips .
 .
+.It Fl -entry-type Ns = Ns Ar type
+Set the top-level module resolution type.
+.
 .It Fl -experimental-modules
 Enable experimental ES module support and caching modules.
 .
@@ -279,9 +282,6 @@ Print stack traces for process warnings (including deprecations).
 .
 .It Fl -track-heap-objects
 Track heap object allocations for heap snapshots.
-.
-.It Fl -type Ns = Ns Ar type
-Set the top-level module resolution type.
 .
 .It Fl -use-bundled-ca , Fl -use-openssl-ca
 Use bundled Mozilla CA store as supplied by current Node.js version or use OpenSSL's default CA store.
