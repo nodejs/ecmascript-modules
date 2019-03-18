@@ -131,6 +131,19 @@ conjunction with native stack and other runtime environment data.
 added: v6.0.0
 -->
 
+### `--entry-type=type`
+<!-- YAML
+added: REPLACEME
+-->
+
+Used with `--experimental-modules`, this configures Node.js to interpret the
+initial entry point as CommonJS or as an ES module.
+
+Valid values are `"commonjs"` and `"module"`. The default is to infer from
+the file extension and the `"type"` field in the nearest parent `package.json`.
+
+Works for executing a file as well as `--eval`, `--print`, `STDIN`.
+
 Enable FIPS-compliant crypto at startup. (Requires Node.js to be built with
 `./configure --openssl-fips`.)
 
@@ -555,17 +568,6 @@ added: v2.4.0
 -->
 
 Track heap object allocations for heap snapshots.
-
-### `--type=type`
-
-Used with `--experimental-modules`, this configures Node.js to interpret the
-initial entry point as CommonJS or as an ES module.
-
-Valid values are `"commonjs"` and `"module"`. The default is to infer from
-the file extension and the `"type"` field in the nearest parent `package.json`.
-
-Works for executing a file as well as `--eval`, `--print`, `STDIN`.
-
 
 ### `--use-bundled-ca`, `--use-openssl-ca`
 <!-- YAML

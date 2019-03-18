@@ -43,29 +43,29 @@ loaded as an ES module.
 node --experimental-modules my-app.mjs
 ```
 
-### <code>--type=module</code> flag
+### <code>--entry-type=module</code> flag
 
 Files ending with `.js` or `.mjs`, or lacking any extension,
-will be loaded as ES modules when the `--type=module` flag is set.
+will be loaded as ES modules when the `--entry-type=module` flag is set.
 
 ```sh
-node --experimental-modules --type=module my-app.js
+node --experimental-modules --entry-type=module my-app.js
 ```
 
-For completeness there is also `--type=commonjs`, for explicitly running a `.js`
-file as CommonJS. This is the default behavior if `--type` is
+For completeness there is also `--entry-type=commonjs`, for explicitly running
+a `.js` file as CommonJS. This is the default behavior if `--entry-type` is
 unspecified.
 
-The `--type=module` flag can also be used to configure Node.js to treat
+The `--entry-type=module` flag can also be used to configure Node.js to treat
 as an ES module input sent in via `--eval` or `--print` (or `-e` or `-p`) or
 piped to Node.js via `STDIN`.
 
 ```sh
-node --experimental-modules --type=module --eval \
+node --experimental-modules --entry-type=module --eval \
   "import { sep } from 'path'; console.log(sep);"
 
 echo "import { sep } from 'path'; console.log(sep);" | \
-  node --experimental-modules --type=module
+  node --experimental-modules --entry-type=module
 ```
 
 ### <code>package.json</code> <code>"type"</code> field
@@ -419,8 +419,8 @@ The `--experimental-json-modules` flag is needed for the module
 to work.
 
 ```bash
-node --experimental-modules --type=module index.js # fails
-node --experimental-modules --type=module --experimental-json-modules index.js # works
+node --experimental-modules --entry-type=module index.js # fails
+node --experimental-modules --entry-type=module --experimental-json-modules index.js # works
 ```
 
 ## Experimental Loader hooks
@@ -575,7 +575,7 @@ of these top-level routines.
 
 _isMain_ is **true** when resolving the Node.js application entry point.
 
-When using the `--type` flag, it overrides the ESM_FORMAT result while
+When using the `--entry-type` flag, it overrides the ESM_FORMAT result while
 providing errors in the case of explicit conflicts.
 
 <details>
