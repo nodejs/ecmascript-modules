@@ -109,11 +109,11 @@ void EnvironmentOptions::CheckOptions(std::vector<std::string>* errors) {
 
   if (!module_type.empty()) {
     if (!experimental_modules) {
-      errors->push_back("--entry-type requires "
+      errors->push_back("--input-type requires "
                         "--experimental-modules to be enabled");
     }
     if (module_type != "commonjs" && module_type != "module") {
-      errors->push_back("--entry-type must be \"module\" or \"commonjs\"");
+      errors->push_back("--input-type must be \"module\" or \"commonjs\"");
     }
   }
 
@@ -338,8 +338,8 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             "show stack traces on process warnings",
             &EnvironmentOptions::trace_warnings,
             kAllowedInEnvironment);
-  AddOption("--entry-type",
-            "set module type name of the entry point",
+  AddOption("--input-type",
+            "set module type for string input",
             &EnvironmentOptions::module_type,
             kAllowedInEnvironment);
 
