@@ -24,25 +24,23 @@ expect('syntax-error-2.js', 'SyntaxError', true);
 
 function expect(file, want, wantsError = false) {
   const argv = [
-    require.resolve(`../fixtures/es-modules/type-auto-scope/${file}`)
+    require.resolve(`../fixtures/es-modules/entry-type-auto-scope/${file}`)
   ];
-  ['--type=auto', '-a'].forEach((opt) => {
+  const opts = {
     // TODO: Remove when --experimental-modules is unflagged
-    opt = `--experimental-modules ${opt}`;
-    const opts = {
-      env: { ...process.env, NODE_OPTIONS: opt },
-      maxBuffer: 1e6,
-    };
-    exec(process.execPath, argv, opts,
-         common.mustCall((err, stdout, stderr) => {
-           if (wantsError) {
-             stdout = stderr;
-           } else {
-             assert.ifError(err);
-           }
-           if (stdout.includes(want)) return;
-           assert.fail(
-             `For ${file}, failed to find ${want} in: <\n${stdout}\n>`);
-         }));
-  });
+    env: { ...process.env,
+           NODE_OPTIONS: '--experimental-modules --entry-type=auto' },
+    maxBuffer: 1e6,
+  };
+  exec(process.execPath, argv, opts,
+       common.mustCall((err, stdout, stderr) => {
+         if (wantsError) {
+           stdout = stderr;
+         } else {
+           assert.ifError(err);
+         }
+         if (stdout.includes(want)) return;
+         assert.fail(
+           `For ${file}, failed to find ${want} in: <\n${stdout}\n>`);
+       }));
 }

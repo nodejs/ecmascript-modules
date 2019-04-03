@@ -112,8 +112,10 @@ void EnvironmentOptions::CheckOptions(std::vector<std::string>* errors) {
       errors->push_back("--input-type requires "
                         "--experimental-modules to be enabled");
     }
-    if (module_type != "commonjs" && module_type != "module") {
-      errors->push_back("--input-type must be \"module\" or \"commonjs\"");
+    if (module_type != "commonjs" && module_type != "module" &&
+        module_type != "auto") {
+      errors->push_back("--input-type must be "
+                        "\"module\" or \"commonjs\" or \"auto\"");
     }
   }
 
