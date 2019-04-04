@@ -174,6 +174,13 @@ For completeness there is also `--input-type=commonjs`, for explicitly running
 string input as CommonJS. This is the default behavior if `--input-type` is
 unspecified.
 
+There is also `--input-type=auto`, which configures Node.js to interpret string
+input as an ES module if Node.js finds an `import` or `export` statement in the
+source code. (Note that dynamic `import()` expressions are different from
+`import` statements; `import()` is allowed in both CommonJS and ES modules.) If
+no `import` or `export` statements are found, the string is interpreted as
+CommonJS.
+
 ## Package Entry Points
 
 The `package.json` `"main"` field defines the entry point for a package,
