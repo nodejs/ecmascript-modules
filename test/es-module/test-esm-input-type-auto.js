@@ -24,12 +24,12 @@ expect('syntax-error-2.js', 'SyntaxError', true);
 
 function expect(file, want, wantsError = false) {
   const argv = [
-    require.resolve(`../fixtures/es-modules/entry-type-auto-scope/${file}`)
+    require.resolve(`../fixtures/es-modules/input-type-auto-scope/${file}`)
   ];
   const opts = {
     // TODO: Remove when --experimental-modules is unflagged
     env: { ...process.env,
-           NODE_OPTIONS: '--experimental-modules --entry-type=auto' },
+           NODE_OPTIONS: '--experimental-modules --input-type=auto' },
     maxBuffer: 1e6,
   };
   exec(process.execPath, argv, opts,
