@@ -269,6 +269,10 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             "experimental ES Module support and caching modules",
             &EnvironmentOptions::experimental_modules,
             kAllowedInEnvironment);
+  AddOption("--experimental-wasm-modules",
+            "experimental ES Module support for webassembly modules",
+            &EnvironmentOptions::experimental_wasm_modules,
+            kAllowedInEnvironment);
   AddOption("--experimental-policy",
             "use the specified file as a "
             "security policy",
