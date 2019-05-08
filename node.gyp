@@ -149,7 +149,6 @@
       'lib/internal/modules/cjs/loader.js',
       'lib/internal/modules/esm/loader.js',
       'lib/internal/modules/esm/create_dynamic_module.js',
-      'lib/internal/modules/esm/create_wasm_module.js',
       'lib/internal/modules/esm/default_resolve.js',
       'lib/internal/modules/esm/module_job.js',
       'lib/internal/modules/esm/module_map.js',
