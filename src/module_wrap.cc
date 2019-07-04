@@ -776,20 +776,6 @@ Maybe<URL> PackageMainResolve(Environment* env,
                               const PackageConfig& pcfg,
                               const URL& base) {
   if (pcfg.exists == Exists::Yes) {
-    Local<Value> exports = pcfg.exports.Get(env->isolate());
-    if (pcfg.has_exports == HasExports::Yes && exports->IsObject()) {
-      Local<Object> exports_obj = exports.As<Object>();
-      Local<String> dot_string = String::NewFromUtf8(env->isolate(), ".",
-          v8::NewStringType::kNormal).ToLocalChecked();
-      auto dot_main =
-          exports_obj->Get(env->context(), dot_string).ToLocalChecked();
-      if (dot_main->IsString()) {
-        Utf8Value main_utf8(env->isolate(), dot_main.As<v8::String>());
-        std::string main(*main_utf8, main_utf8.length());
-        URL main_url("./" + main, pjson_url);
-        return FinalizeResolution(env, main_url, base);
-      }
-    }
     if (pcfg.has_main == HasMain::Yes) {
       URL resolved(pcfg.main, pjson_url);
       const std::string& path = resolved.ToFilePath();
