@@ -268,6 +268,8 @@ import feature from 'es-module-package/features/x.js';
 If a package has no exports, setting `"exports": false` can be used instead of
 `"exports": {}` to indicate the package does not intent for submodules to be
 exposed.
+This is just a convention that works because `false`, just like `{}`, has no
+iterable own properties.
 
 ## <code>import</code> Specifiers
 

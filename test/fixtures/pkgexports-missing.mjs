@@ -1,3 +1,7 @@
-export function loadMissing () {
+export function loadMissing() {
   return import('pkgexports/missing');
+}
+
+export function loadFromNumber() {
+  return import('pkgexports-number/hidden.js');
 }

@@ -615,8 +615,7 @@ Maybe<const PackageConfig*> GetPackageConfig(Environment* env,
   Persistent<Value> exports;
   if (pkg_json->Get(env->context(),
       env->exports_string()).ToLocal(&exports_v) &&
-      (exports_v->IsObject() ||
-      (exports_v->IsBoolean() && exports_v->IsFalse()))) {
+      !exports_v->IsNullOrUndefined()) {
     exports.Reset(env->isolate(), exports_v);
 
     auto entry = env->package_json_cache.emplace(path,
