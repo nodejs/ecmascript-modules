@@ -92,7 +92,8 @@ jobs:
       language: node_js
       node_js: "node"
       install:
-        - pyenv global 3.7.1
+        - pyenv global 3.6.7
+        # - pyenv global 3.7.1
         - python3.7 -m pip install --upgrade pip
         - make lint-py-build
       script:
