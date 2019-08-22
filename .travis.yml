@@ -94,11 +94,11 @@ jobs:
       install:
         - pyenv global 3.6.7
         # - pyenv global 3.7.1
-        - python3.7 -m pip install --upgrade pip
+        - python3.6 -m pip install --upgrade pip
         - make lint-py-build
       script:
         - NODE=$(which node) make lint lint-py
-        - python3.7 ./configure.py
+        - python3.6 ./configure.py
         - NODE=$(which node) make test
 
   allow_failures:
