@@ -67,6 +67,14 @@ const expectedModules = new Set([
   'NativeModule timers',
   'NativeModule url',
   'NativeModule vm',
+  'NativeModule internal/modules/esm/create_dynamic_module',
+  'NativeModule internal/modules/esm/default_resolve',
+  'NativeModule internal/modules/esm/loader',
+  'NativeModule internal/modules/esm/module_job',
+  'NativeModule internal/modules/esm/module_map',
+  'NativeModule internal/modules/esm/translators',
+  'NativeModule internal/process/esm_loader',
+  'NativeModule internal/vm/source_text_module',
 ]);
 
 if (common.isMainThread) {
