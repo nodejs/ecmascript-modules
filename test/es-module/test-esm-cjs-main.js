@@ -22,6 +22,5 @@ child.on('close', common.mustCall((code, signal) => {
   assert.strictEqual(code, 0);
   assert.strictEqual(signal, null);
   assert.strictEqual(stdout, 'executed\n');
-  assert.strictEqual(stderr, `(node:${child.pid}) ` +
-      'ExperimentalWarning: The ESM module loader is experimental.\n');
+  assert.strictEqual(stderr, '');
 }));
