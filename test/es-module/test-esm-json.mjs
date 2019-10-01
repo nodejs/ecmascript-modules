@@ -1,5 +1,3 @@
-// Flags: --experimental-modules
-
 import '../common/index.mjs';
 import { strictEqual } from 'assert';
 

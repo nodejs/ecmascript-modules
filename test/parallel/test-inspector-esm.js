@@ -100,8 +100,8 @@ async function testBreakpoint(session) {
 }
 
 async function runTest() {
-  const child = new NodeInstance(['--inspect-brk=0', '--experimental-modules'],
-                                 '', fixtures.path('es-modules/loop.mjs'));
+  const child = new NodeInstance(['--inspect-brk=0'], '',
+                                 fixtures.path('es-modules/loop.mjs'));
 
   const session = await child.connectInspectorSession();
   await testBreakpointOnStart(session);
