@@ -27,7 +27,7 @@ console.error('before');
 
 (function() {
 	// These lines should contain tab!
-	// eslint-disable-next-line no-throw-literal
+	// eslint-disable-next-line space-in-parens
 	throw new Error( 'bar' );
 })();
 
