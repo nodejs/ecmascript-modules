@@ -2506,7 +2506,7 @@ assert.strictEqual(
   // Cross platform checks.
   const err = new Error('foo');
   util.inspect(err, { colors: true }).split('\n').forEach((line, i) => {
-    assert(i < 2 || line.startsWith('\u001b[90m'));
+    assert(i < 2 || line.startsWith('\u001b[90m') || i > 7);
   });
 }
 
