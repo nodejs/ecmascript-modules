@@ -1,5 +1,4 @@
-
-*test*message*throw_undefined.js:*
-throw undefined;
-^
+internal/modules/cjs/loader.js:*
+    internalBinding('errors').triggerUncaughtException(
+                              ^
 undefined

@@ -1,6 +1,6 @@
-assert.js:*
-      throw err;
-      ^
+internal/modules/cjs/loader.js:*
+    internalBinding('errors').triggerUncaughtException(
+                              ^
 
 AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
 + actual - expected
@@ -10,6 +10,7 @@ AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
 -   bar: true
 - }
     at Object.<anonymous> (*assert_throws_stack.js:*:*)
+    at *
     at *
     at *
     at *

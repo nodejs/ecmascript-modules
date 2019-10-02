@@ -28,7 +28,7 @@ console.error('before');
 (function() {
 	// These lines should contain tab!
 	// eslint-disable-next-line no-throw-literal
-	throw ({ foo: 'bar' });
+	throw new Error( 'bar' );
 })();
 
 console.error('after');

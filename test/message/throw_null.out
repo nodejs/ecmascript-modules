@@ -1,5 +1,4 @@
-
-*test*message*throw_null.js:*
-throw null;
-^
+internal/modules/cjs/loader.js:*
+    internalBinding('errors').triggerUncaughtException(
+                              ^
 null

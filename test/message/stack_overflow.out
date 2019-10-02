@@ -1,6 +1,5 @@
 before
-*test*message*stack_overflow.js:*
-JSON.stringify(array);
-     ^
-
+internal/modules/cjs/loader.js:*
+    internalBinding('errors').triggerUncaughtException(
+                              ^
 [RangeError: Maximum call stack size exceeded]

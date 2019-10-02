@@ -1,4 +1,4 @@
-*test*message*throw_custom_error.js:*
-throw ({ name: 'MyCustomError', message: 'This is a custom message' });
-^
+internal/modules/cjs/loader.js:*
+    internalBinding('errors').triggerUncaughtException(
+                              ^
 { name: 'MyCustomError', message: 'This is a custom message' }

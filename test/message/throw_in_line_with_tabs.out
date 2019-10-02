@@ -1,5 +1,14 @@
 before
-*test*message*throw_in_line_with_tabs.js:*
-	throw ({ foo: 'bar' });
-	^
-{ foo: 'bar' }
+/*/test/message/throw_in_line_with_tabs.js:31
+	throw new Error( 'bar' );
+	      ^
+Error: bar
+    at /*/test/message/throw_in_line_with_tabs.js:31:8
+    at Object.<anonymous> (/*/test/message/throw_in_line_with_tabs.js:32:3)
+    at Module._compile (internal/modules/cjs/loader.js:*:*)
+    at Object.Module._extensions..js (internal/modules/cjs/loader.js:*:*)
+    at Module.load (internal/modules/cjs/loader.js:*:*)
+    at Function.Module._load (internal/modules/cjs/loader.js:*:*)
+    at ModuleWrap.<anonymous> (internal/modules/esm/translators.js:*:*)
+    at ModuleJob.run (internal/modules/esm/module_job.js:*:*)
+    at async Loader.import (internal/modules/esm/loader.js:*:*)
