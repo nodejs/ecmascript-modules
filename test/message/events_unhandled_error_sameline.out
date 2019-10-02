@@ -15,4 +15,4 @@ Emitted 'error' event at:
     at Object.<anonymous> (*events_unhandled_error_sameline.js:*:*)
     at Module._compile (internal/modules/cjs/loader.js:*:*)
     [... lines matching original stack trace ...]
-    at async Loader.import (internal/modules/esm/loader.js:137:24)
+    at async Loader.import (internal/modules/esm/loader.js:*:*)

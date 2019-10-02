@@ -1,6 +1,6 @@
 *test-fatal-error.js:*
-throw err;
-^
+const err = new TypeError('foobar');
+            ^
 
 TypeError: foobar
     at Object.<anonymous> (*test-fatal-error.js:*)
@@ -8,6 +8,7 @@ TypeError: foobar
 *[90m    at *(internal*loader.js:*:*)*[39m
 *[90m    at *(internal*loader.js:*:*)*[39m
 *[90m    at *(internal*loader.js:*:*)*[39m
+*[90m    at *(internal/modules/esm/translators.js:*:*)*[39m
 *[90m    at *[39m
 *[90m    at *[39m {
   bla: *[33mtrue*[39m
