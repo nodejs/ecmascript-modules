@@ -184,7 +184,6 @@ function nextdir() {
 {
   const output = spawnSync(process.execPath, [
     '--enable-source-maps',
-    '--experimental-modules',
     require.resolve('../fixtures/source-map/babel-esm.mjs')
   ]);
   assert.ok(
