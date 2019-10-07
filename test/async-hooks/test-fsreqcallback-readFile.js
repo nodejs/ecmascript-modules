@@ -17,7 +17,7 @@ fs.readFile(__filename, common.mustCall(onread));
 
 function onread() {
   const as = hooks.activitiesOfTypes('FSREQCALLBACK');
-  let lastParent = 1;
+  let lastParent = hooks.firstTriggerAsyncId;
   for (let i = 0; i < as.length; i++) {
     const a = as[i];
     assert.strictEqual(a.type, 'FSREQCALLBACK');

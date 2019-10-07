@@ -42,7 +42,7 @@ function onexit() {
   const a0 = as[0];
   assert.strictEqual(a0.type, 'PROMISE');
   assert.strictEqual(typeof a0.uid, 'number');
-  assert.strictEqual(a0.triggerAsyncId, 1);
+  assert.strictEqual(a0.triggerAsyncId, hooks.firstTriggerAsyncId);
   checkInvocations(a0, { init: 1 }, 'when process exits');
 
   const a1 = as[1];

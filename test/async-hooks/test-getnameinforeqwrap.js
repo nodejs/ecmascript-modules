@@ -24,7 +24,7 @@ function onlookupService() {
   const a = as[0];
   assert.strictEqual(a.type, 'GETNAMEINFOREQWRAP');
   assert.strictEqual(typeof a.uid, 'number');
-  assert.strictEqual(a.triggerAsyncId, 1);
+  assert.strictEqual(a.triggerAsyncId, hooks.firstTriggerAsyncId);
   checkInvocations(a, { init: 1, before: 1 },
                    'while in onlookupService callback');
   tick(2);

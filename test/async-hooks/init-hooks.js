@@ -18,6 +18,9 @@ if (typeof global.gc === 'function') {
 
 function noop() {}
 
+const bootstrapIds = new Set();
+let firstTriggerAsyncId;
+
 class ActivityCollector {
   constructor(start, {
     allowNoInit = false,
@@ -59,6 +62,10 @@ class ActivityCollector {
 
   disable() {
     this._asyncHook.disable();
+  }
+
+  get firstTriggerAsyncId() {
+    return firstTriggerAsyncId;
   }
 
   sanityCheck(types) {
@@ -177,7 +184,13 @@ class ActivityCollector {
     return h;
   }
 
-  _init(uid, type, triggerAsyncId, handle) {
+  _init(uid, type, triggerAsyncId, handle, bootstrap) {
+    if (bootstrap) {
+      bootstrapIds.add(uid);
+      return;
+    } else if (!firstTriggerAsyncId) {
+      firstTriggerAsyncId = triggerAsyncId;
+    }
     const activity = {
       uid,
       type,
@@ -190,10 +203,11 @@ class ActivityCollector {
     this._stamp(activity, 'init');
     this._activities.set(uid, activity);
     this._maybeLog(uid, type, 'init');
-    this.oninit(uid, type, triggerAsyncId, handle);
+    this.oninit(uid, type, triggerAsyncId, handle, bootstrap);
   }
 
   _before(uid) {
+    if (bootstrapIds.has(uid)) return;
     const h = this._getActivity(uid, 'before');
     this._stamp(h, 'before');
     this._maybeLog(uid, h && h.type, 'before');
@@ -201,6 +215,7 @@ class ActivityCollector {
   }
 
   _after(uid) {
+    if (bootstrapIds.has(uid)) return;
     const h = this._getActivity(uid, 'after');
     this._stamp(h, 'after');
     this._maybeLog(uid, h && h.type, 'after');
@@ -208,6 +223,7 @@ class ActivityCollector {
   }
 
   _destroy(uid) {
+    if (bootstrapIds.has(uid)) return;
     const h = this._getActivity(uid, 'destroy');
     this._stamp(h, 'destroy');
     this._maybeLog(uid, h && h.type, 'destroy');
@@ -215,6 +231,7 @@ class ActivityCollector {
   }
 
   _promiseResolve(uid) {
+    if (bootstrapIds.has(uid)) return;
     const h = this._getActivity(uid, 'promiseResolve');
     this._stamp(h, 'promiseResolve');
     this._maybeLog(uid, h && h.type, 'promiseResolve');
@@ -222,6 +239,7 @@ class ActivityCollector {
   }
 
   _maybeLog(uid, type, name) {
+    if (bootstrapIds.has(uid)) return;
     if (this._logid &&
       (type == null || this._logtype == null || this._logtype === type)) {
       print(`${this._logid}.${name}.uid-${uid}`);

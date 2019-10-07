@@ -14,9 +14,14 @@ const createSnapshot = common.mustCall(() => {
 }, 8);  // 2 × init + 2 × resolve + 1 × (after + before) + 2 × destroy = 8 calls
 
 const promiseIds = [];
+const bootstrapIds = new Set();
 
 async_hooks.createHook({
-  init(id, type) {
+  init(id, type, triggerAsyncId, resource, bootstrap) {
+    if (bootstrap) {
+      bootstrapIds.add(id);
+      return;
+    }
     if (type === 'PROMISE') {
       createSnapshot();
       promiseIds.push(id);
@@ -32,6 +37,7 @@ async_hooks.createHook({
   },
 
   promiseResolve(id) {
+    if (bootstrapIds.has(id)) return;
     assert(promiseIds.includes(id));
     createSnapshot();
   },

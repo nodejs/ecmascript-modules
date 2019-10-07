@@ -29,13 +29,22 @@ const fnsToTest = [setTimeout, (cb) => {
   });
 }];
 
+let beforeCnt = 0;
+let afterCnt = 0;
+let destroyCnt = 0;
+
 const hook = async_hooks.createHook({
-  before: common.mustNotCall(),
-  after: common.mustCall(() => {}, 3),
-  destroy: common.mustCall(() => {
+  before(asyncId) {
+    beforeCnt++;
+  },
+  after(asyncId) {
+    afterCnt++;
+  },
+  destroy(asyncId) {
+    destroyCnt++;
     hook.disable();
     nextTest();
-  }, 3)
+  }
 });
 
 nextTest();
@@ -47,3 +56,9 @@ function nextTest() {
     }));
   }
 }
+
+process.on('nextTick', () => {
+  assert.strictEqual(beforeCnt, 0);
+  assert.strictEqual(afterCnt, 3);
+  assert.strictEqual(destroyCnt, 3);
+});

@@ -46,7 +46,10 @@ if (process.argv[2] === 'child') {
     assert(fs.existsSync(file));
     const data = await fs.promises.readFile(file);
     JSON.parse(data.toString()).traceEvents
-      .filter((trace) => trace.cat !== '__metadata')
+      .filter((trace) =>
+        trace.cat !== '__metadata' &&
+        trace.name !== 'PROMISE' &&
+        trace.name !== 'EnvPromiseHook')
       .forEach((trace) => {
         assert.strictEqual(trace.pid, proc.pid);
         assert(names.has(trace.name));

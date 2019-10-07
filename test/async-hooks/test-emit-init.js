@@ -67,13 +67,18 @@ async_hooks.emitInit(expectedId, expectedType, expectedTriggerId,
 
 hooks1.disable();
 
-initHooks({
-  oninit: common.mustCall((id, type, triggerAsyncId, resource) => {
+let okCnt = 0;
+const hooks = initHooks({
+  oninit: (id, type, triggerAsyncId, resource) => {
+    if (type === 'PROMISE' || type === 'TickObject') return;
     assert.strictEqual(id, expectedId);
     assert.strictEqual(type, expectedType);
     assert.notStrictEqual(triggerAsyncId, expectedTriggerId);
     assert.strictEqual(resource.key, expectedResource.key);
-  })
-}).enable();
+    okCnt++;
+  }
+});
+hooks.enable();
 
 async_hooks.emitInit(expectedId, expectedType, null, expectedResource);
+assert.strictEqual(okCnt, 1);

@@ -22,7 +22,6 @@ const hooks = initHooks();
 hooks._allowNoInit = true;
 hooks.enable();
 
-
 process.on('exit', function onexit() {
   hooks.disable();
   hooks.sanityCheck('PROMISE');

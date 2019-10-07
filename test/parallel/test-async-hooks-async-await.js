@@ -8,7 +8,8 @@ const assert = require('assert');
 
 const asyncIds = [];
 async_hooks.createHook({
-  init: (asyncId, type, triggerAsyncId) => {
+  init: (asyncId, type, triggerAsyncId, resource, bootstrap) => {
+    if (bootstrap) return;
     asyncIds.push([triggerAsyncId, asyncId]);
   }
 }).enable();

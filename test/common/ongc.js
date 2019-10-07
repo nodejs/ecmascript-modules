@@ -9,7 +9,9 @@ function onGC(obj, gcListener) {
   const async_hooks = require('async_hooks');
 
   const onGcAsyncHook = async_hooks.createHook({
-    init: common.mustCallAtLeast(function(id, type) {
+    init: common.mustCallAtLeast(function(id, type, triggerAsncId, resource,
+                                          bootstrap) {
+      if (bootstrap) return;
       if (this.trackedId === undefined) {
         assert.strictEqual(type, gcTrackerTag);
         this.trackedId = id;

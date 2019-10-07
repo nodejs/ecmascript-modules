@@ -45,12 +45,33 @@ const expectedType = 'test_emit_before_after_type';
 async_hooks.emitBefore(expectedId, expectedTriggerId);
 async_hooks.emitAfter(expectedId);
 
-initHooks({
-  onbefore: common.mustCall((id) => assert.strictEqual(id, expectedId)),
-  onafter: common.mustCall((id) => assert.strictEqual(id, expectedId)),
+const ignoreIds = new Set();
+const initIds = new Map();
+
+let okCnt = 0;
+const hooks = initHooks({
+  oninit(id, type) {
+    if (type === 'TickObject' || type === 'PROMISE') {
+      ignoreIds.add(id);
+    } else {
+      initIds.set(id, type);
+    }
+  },
+  onbefore(id) {
+    if (ignoreIds.has(id) || !initIds.has(id)) return;
+    assert.strictEqual(id, expectedId);
+    okCnt++;
+  },
+  onafter(id) {
+    if (ignoreIds.has(id) || !initIds.has(id)) return;
+    assert.strictEqual(id, expectedId);
+    okCnt++;
+  },
   allowNoInit: true
-}).enable();
+});
+hooks.enable();
 
 async_hooks.emitInit(expectedId, expectedType, expectedTriggerId);
 async_hooks.emitBefore(expectedId, expectedTriggerId);
 async_hooks.emitAfter(expectedId);
+assert.strictEqual(okCnt, 2);

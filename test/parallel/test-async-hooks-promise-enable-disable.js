@@ -18,14 +18,15 @@ process.on('exit', (code) => {
   assert.strictEqual(p_inits, EXPECTED_INITS);
 });
 
-const mustCallInit = common.mustCall(function init(id, type, tid, resource) {
+function init(id, type, tid, resource, bootstrap) {
+  if (bootstrap) return;
   if (type !== 'PROMISE')
     return;
   p_inits++;
-}, EXPECTED_INITS);
+}
 
 const hook = async_hooks.createHook({
-  init: mustCallInit
+  init
 // Enable then disable to test whether disable() actually works.
 }).enable().disable().disable();
 
